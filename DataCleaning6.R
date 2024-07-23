@@ -2,9 +2,12 @@
 # Data Cleaning Script
 # Alexandra Sadler - 19.7.24
 
-# 1. SET UP WORKSPACE
+# 1. SET UP WORKSPACE----
+
+
 
 # Load necessary libraries
+
 library(dplyr)
 library(ggforce)
 library(ggmap)
@@ -28,8 +31,7 @@ setwd("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Ass
 
 
 
-
-# 2. PREPARE QUALTRICS DATASET
+# 2. PREPARE QUALTRICS DATASET----
 
 # Read Qualtrics data and column mapping files
 qdata <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Assessment/Data analysis/R/Qualtrics_19.6.24_Clean.xlsx")
@@ -199,7 +201,7 @@ for (certif_other in certif_other_rename) {
 
 
 
-# 3. PREPARE REDCAP DATASET
+# 3. PREPARE REDCAP DATASET----
 
   
 # Read RedCap data and column mapping files
@@ -296,7 +298,7 @@ rdata1 <- rdata1 %>%
 
 
 
-# 4. MERGE DATASETS
+# 4. MERGE DATASETS----
 
 combined_data <- bind_rows(rdata1, qdata1)
 
@@ -304,7 +306,7 @@ combined_data <- bind_rows(rdata1, qdata1)
 
 
 
-# 5. REMOVE INVALID RESPONSES
+# 5. REMOVE INVALID RESPONSES----
 
 # Delete where blank for lat, lon, vendor name, and vendor type
 blank_responses <- rowSums(is.na(combined_data[,c("latitude","longitude","vendor_name","vendor_type")])) == 4
@@ -382,8 +384,13 @@ combined_data <- combined_data %>%
   
   combined_data <- combined_data %>%
     filter(zero_products_count != 0)
-  #testing GitHub
-# 6. CLEAN UP OTHER RESPONSES
+
+  
+  
+  
+  
+  
+# 6. CLEAN UP OTHER RESPONSES----
 
 # Clean up other vendor type responses
 
@@ -836,7 +843,7 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
 
   
 
-# 7. CLEANING GPS DATA
+# 7. CLEANING GPS DATA----
   
 # Function to convert DMS string to decimal degrees
   convert_dms_string_to_decimal <- function(dms_string) {
@@ -888,7 +895,7 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
   
 
   
-# 8. MAP POINTS TO ASSIGN CIRCLES AND CHECK FOR VALUES OUTSIDE CIRCLES
+# 8. MAP POINTS TO ASSIGN CIRCLES AND CHECK FOR VALUES OUTSIDE CIRCLES----
   
   # Load your datasets
   circlepoints <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Assessment/Data analysis/R/circle_coordinates_combined.xlsx")
@@ -956,7 +963,7 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
   
   
 
-# 9. FIX POINTS OUTSIDE CIRCLES
+# 9. FIX POINTS OUTSIDE CIRCLES----
   
   
   # r_17 longitude used for latitude. Averaging two latitudes collected before and after point.
@@ -1137,7 +1144,7 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
   
   
   
-# 10. RE-MAP POINTS TO ASSIGN CIRCLES AND CHECK FOR VALUES OUTSIDE CIRCLES
+# 10. RE-MAP POINTS TO ASSIGN CIRCLES AND CHECK FOR VALUES OUTSIDE CIRCLES----
   
   # Define datasets
   
@@ -1211,7 +1218,7 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
   
   
   
-# 11. REVIEW RICE PRICE DATA
+# 11. REVIEW RICE PRICE DATA----
 
   # Create new data frame for responses with rice data
   
@@ -1372,8 +1379,10 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
       # There are 4 outliers, again all in the UK, mostly in London
 
       
+      
+      
 
-# 12. PREPARE COMPOSITE VARIABLES FOR ANALYSIS
+# 12. PREPARE COMPOSITE VARIABLES FOR ANALYSIS----
 
   # Create rice_price_both variable for when a vendor has both organic and conventional rice  
 
@@ -1807,7 +1816,7 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
   
   
         
-# 13. EXPORT DATA TO EXCEL FILES
+# 13. EXPORT DATA TO EXCEL FILES----
 write.xlsx(combined_data, "combined_data.xlsx")  
 write.xlsx(qdata1, "qdata1.xlsx")
 write.xlsx(rdata1, "rdata1.xlsx")
