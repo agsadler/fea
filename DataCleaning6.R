@@ -382,7 +382,7 @@ combined_data <- combined_data %>%
   
   combined_data <- combined_data %>%
     filter(zero_products_count != 0)
-  
+  #testing GitHub
 # 6. CLEAN UP OTHER RESPONSES
 
 # Clean up other vendor type responses
