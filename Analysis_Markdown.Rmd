@@ -1,0 +1,820 @@
+---
+title: "Organic Food Environment Assessment"
+author: "Alexandra Sadler"
+date: "19/07/2024"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+# Load necessary libraries
+library(dplyr)
+library(gmodels)
+library(knitr)
+library(kableExtra)
+library(openxlsx)
+library(readxl)
+library(readr)
+library(stats)
+library(tidyr)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+
+# Load cleaned data
+data_clean <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Assessment/Data analysis/R/combined_data.xlsx")
+
+```
+
+
+## 1. What is the availability of organic food in urban food environments? How does this vary across different geographic and socioeconomic contexts?
+
+### Hypothesis 1a. Organic food availability will be highest in the United Kingdom, in larger cities within a given country, and in higher-income neighbourhoods within a given city.
+
+#### Kruskal-Wallis rank sum test
+
+##### Overall results (variation between countries)
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Country-level analysis
+
+  # Create data frame of country and org_foods_count
+  kruskal_country_data <- data_clean %>%
+    select(country, org_foods_count)
+
+  # Perform the Kruskal-Wallis test
+  result1 <- kruskal.test(org_foods_count ~ country, data = kruskal_country_data)
+  
+  # Display the results
+  print(result1)
+
+```
+
+##### Country-level results (variation between cities within a given country)
+
+###### Brazil
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Brazil
+brazil <- data_clean %>%
+  filter(country == "Brazil")
+
+# Create data frame of city and org_foods_count
+kruskal_brazil_city_data <- brazil %>%
+  select(city, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result2 <- kruskal.test(org_foods_count ~ city, data = kruskal_brazil_city_data)
+  
+# Display the results
+print(result2)
+
+```
+
+###### India
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for India
+india <- data_clean %>%
+  filter(country == "India")
+
+# Create data frame of city and org_foods_count
+kruskal_india_city_data <- india %>%
+  select(city, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result3 <- kruskal.test(org_foods_count ~ city, data = kruskal_india_city_data)
+  
+# Display the results
+print(result3)
+
+```
+
+###### United Kingdom
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for India
+uk <- data_clean %>%
+  filter(country == "UK")
+
+# Create data frame of city and org_foods_count
+kruskal_uk_city_data <- uk %>%
+  select(city, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result4 <- kruskal.test(org_foods_count ~ city, data = kruskal_uk_city_data)
+  
+# Display the results
+print(result4)
+
+```
+
+##### Neighbourhood-level results (variation between neighbourhoods within a given city)
+
+###### Brazil: Rio de Janeiro
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Rio de Janeiro
+rio <- data_clean %>%
+  filter(city == "Rio de Janeiro")
+
+# Create data frame of circle and org_foods_count
+kruskal_rio_data <- rio %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result7 <- kruskal.test(org_foods_count ~ circle, data = kruskal_rio_data)
+  
+# Display the results
+print(result7)
+
+```
+
+###### Brazil: Sao Paulo
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Sao Paulo
+saopaulo <- data_clean %>%
+  filter(city == "Sao Paolo")
+
+# Create data frame of circle and org_foods_count
+kruskal_saopaulo_data <- saopaulo %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result5 <- kruskal.test(org_foods_count ~ circle, data = kruskal_saopaulo_data)
+  
+# Display the results
+print(result5)
+
+```
+
+###### Brazil: Sinop
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Sinop
+sinop <- data_clean %>%
+  filter(city == "Sinop")
+
+# Create data frame of circle and org_foods_count
+kruskal_sinop_data <- sinop %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result6 <- kruskal.test(org_foods_count ~ circle, data = kruskal_sinop_data)
+  
+# Display the results
+print(result6)
+
+```
+
+
+###### India: Hyderabad
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Hyderabad
+hyderabad <- data_clean %>%
+  filter(city == "Hyderabad")
+
+# Create data frame of circle and org_foods_count
+kruskal_hyderabad_data <- hyderabad %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result8 <- kruskal.test(org_foods_count ~ circle, data = kruskal_hyderabad_data)
+  
+# Display the results
+print(result8)
+
+```
+
+###### India: Latur
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Latur
+latur <- data_clean %>%
+  filter(city == "Latur")
+
+# Create data frame of circle and org_foods_count
+kruskal_latur_data <- latur %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result9 <- kruskal.test(org_foods_count ~ circle, data = kruskal_latur_data)
+  
+# Display the results
+print(result9)
+
+```
+
+###### India: Visakhapatnam
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Visakhapatnam
+visakhapatnam <- data_clean %>%
+  filter(city == "Visakhapatnam")
+
+# Create data frame of circle and org_foods_count
+kruskal_visakhapatnam_data <- visakhapatnam %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result10 <- kruskal.test(org_foods_count ~ circle, data = kruskal_visakhapatnam_data)
+  
+# Display the results
+print(result10)
+
+```
+
+###### United Kingdom: Birmingham
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Birmingham
+birmingham <- data_clean %>%
+  filter(city == "Birmingham")
+
+# Create data frame of circle and org_foods_count
+kruskal_birmingham_data <- birmingham %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result11 <- kruskal.test(org_foods_count ~ circle, data = kruskal_birmingham_data)
+  
+# Display the results
+print(result11)
+
+```
+
+###### UK: Edinburgh
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Edinburgh
+edinburgh <- data_clean %>%
+  filter(city == "Edinburgh")
+
+# Create data frame of circle and org_foods_count
+kruskal_edinburgh_data <- edinburgh %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result12 <- kruskal.test(org_foods_count ~ circle, data = kruskal_edinburgh_data)
+  
+# Display the results
+print(result12)
+
+```
+
+###### UK: London
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for London
+london <- data_clean %>%
+  filter(city == "London")
+
+# Create data frame of circle and org_foods_count
+kruskal_london_data <- london %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result13 <- kruskal.test(org_foods_count ~ circle, data = kruskal_london_data)
+  
+# Display the results
+print(result13)
+
+```
+
+#### Fisher's Exact test
+
+##### Overall results (variation between countries)
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Prepare a contingency table
+contingency_table <- data_clean %>%
+  group_by(country, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$country
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Chi-squared test
+chi_sq_result_overall <- chisq.test(data_matrix)
+
+# Display the results
+print(chi_squared_result)
+
+```
+
+##### Country-level results (variation between cities within a given country)
+
+###### Brazil
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Prepare a contingency table
+contingency_table <- brazil %>%
+  group_by(city, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$city
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Fisher's Exact Test with Monte Carlo simulation
+fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+
+# Display the results
+print(fisher_mc_result)
+```
+
+###### India
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Prepare a contingency table
+contingency_table <- india %>%
+  group_by(city, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$city
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Fisher's Exact Test with Monte Carlo simulation
+fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+
+# Display the results
+print(fisher_mc_result)
+```
+
+###### United Kingdom
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Prepare a contingency table
+contingency_table <- uk %>%
+  group_by(city, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$city
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Fisher's Exact Test with Monte Carlo simulation
+fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+
+# Display the results
+print(fisher_mc_result)
+```
+
+##### Neighbourhood-level results (variation between neighbourhoods within a given city)
+
+###### Brazil: Rio de Janeiro
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- rio %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Fisher's Exact Test with Monte Carlo simulation
+fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+
+# Display the results
+print(fisher_mc_result)
+
+```
+
+
+###### Brazil: Sao Paulo
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- saopaulo %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Fisher's Exact Test with Monte Carlo simulation
+fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+
+# Display the results
+print(fisher_mc_result)
+
+```
+
+###### Brazil: Sinop
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- sinop %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Fisher's Exact Test with Monte Carlo simulation
+fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+
+# Display the results
+print(fisher_mc_result)
+
+```
+
+###### India: Hyderabad
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- hyderabad %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Fisher's Exact Test with Monte Carlo simulation
+fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+
+# Display the results
+print(fisher_mc_result)
+
+```
+
+###### India: Latur
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- latur %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Fisher's Exact Test with Monte Carlo simulation
+fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+
+# Display the results
+print(fisher_mc_result)
+
+```
+
+###### India: Visakhapatnam
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- visakhapatnam %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Fisher's Exact Test with Monte Carlo simulation
+fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+
+# Display the results
+print(fisher_mc_result)
+
+```
+
+###### United Kingdom: Birmingham
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- birmingham %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Fisher's Exact Test with Monte Carlo simulation
+fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+
+# Display the results
+print(fisher_mc_result)
+
+```
+
+###### United Kingdom: Edinburgh
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- edinburgh %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Fisher's Exact Test with Monte Carlo simulation
+fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+
+# Display the results
+print(fisher_mc_result)
+
+```
+
+###### United Kingdom: London
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- london %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Fisher's Exact Test with Monte Carlo simulation
+fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+
+# Display the results
+print(fisher_mc_result)
+
+```
+
+
+#### Median and interquartile range
+
+##### For each neighbourhood within each city
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Median and IQR for each neighborhood within each city
+neighborhood_stats <- data_clean %>%
+  group_by(country, city, circle) %>%
+  summarize(
+    median_org_foods_count = median(org_foods_count, na.rm = TRUE),
+    iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+print(neighborhood_stats)
+```
+
+##### For each city within each country
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Median and IQR for each city within each country
+city_stats <- data_clean %>%
+  group_by(country, city) %>%
+  summarize(
+    median_org_foods_count = median(org_foods_count, na.rm = TRUE),
+    iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+print(city_stats)
+```
+
+##### For each country
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Median and IQR for each country
+country_stats <- data_clean %>%
+  group_by(country) %>%
+  summarize(
+    median_org_foods_count = median(org_foods_count, na.rm = TRUE),
+    iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+print(country_stats)
+```
+
+##### Overall
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Calculate the overall median and IQR
+overall_median <- median(data_clean$org_foods_count, na.rm = TRUE)
+overall_iqr <- IQR(data_clean$org_foods_count, na.rm = TRUE)
+
+# Display the results
+overall_median
+overall_iqr
+```
+
+
+### Exploratory Analysis: Hypothesis 1b. The count and proportion of vendors selling multiple organic options for at least one sentinel food will be highest in the United Kingdom, in larger cities within a given country, and in higher-income neighbourhoods within a given city.
+
+
+#### Median and interquartile range
+
+##### For each neighbourhood within each city
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Median and IQR for each neighborhood within each city
+neighborhood_stats2 <- data_clean %>%
+  group_by(country, city, circle) %>%
+  summarize(
+    median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
+    iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+print(neighborhood_stats2)
+```
+
+##### For each city within each country
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Median and IQR for each city within each country
+city_stats2 <- data_clean %>%
+  group_by(country, city) %>%
+  summarize(
+    median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
+    iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+print(city_stats2)
+```
+
+##### For each country
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Median and IQR for each country
+country_stats2 <- data_clean %>%
+  group_by(country) %>%
+  summarize(
+    median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
+    iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+print(country_stats2)
+```
+
+##### Overall
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Calculate the overall median and IQR
+overall_median2 <- median(data_clean$multiple_org_count, na.rm = TRUE)
+overall_iqr2 <- IQR(data_clean$multiple_org_count, na.rm = TRUE)
+
+# Display the results
+overall_median2
+overall_iqr2
+```
+
+### Exploratory Analysis: Organic versus non-organic vendor characteristics
+
+#### Country-level
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Summarize the data grouped by `org_vendor` and `country`
+country_summary_stats <- data_clean %>%
+  group_by(country, org_vendor) %>%
+  summarize(
+    median_vendor_cashiers = median(vendor_cashiers, na.rm = TRUE),
+    iqr_vendor_cashiers = IQR(vendor_cashiers, na.rm = TRUE),
+    min_vendor_cashiers = min(vendor_cashiers, na.rm = TRUE),
+    max_vendor_cashiers = max(vendor_cashiers, na.rm = TRUE),
+    
+    median_days_open_count = median(days_open_count, na.rm = TRUE),
+    iqr_days_open_count = IQR(days_open_count, na.rm = TRUE),
+    min_days_open_count = min(days_open_count, na.rm = TRUE),
+    max_days_open_count = max(days_open_count, na.rm = TRUE),
+    
+    median_foods_count = median(foods_count, na.rm = TRUE),
+    iqr_foods_count = IQR(foods_count, na.rm = TRUE),
+    min_foods_count = min(foods_count, na.rm = TRUE),
+    max_foods_count = max(foods_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Display the country-level results
+print(country_summary_stats)
+```
+
+#### Overall
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Summarize the data for overall statistics grouped by `org_vendor`
+overall_summary_stats <- data_clean %>%
+  group_by(org_vendor) %>%
+  summarize(
+    median_vendor_cashiers = median(vendor_cashiers, na.rm = TRUE),
+    iqr_vendor_cashiers = IQR(vendor_cashiers, na.rm = TRUE),
+    min_vendor_cashiers = min(vendor_cashiers, na.rm = TRUE),
+    max_vendor_cashiers = max(vendor_cashiers, na.rm = TRUE),
+    
+    median_days_open_count = median(days_open_count, na.rm = TRUE),
+    iqr_days_open_count = IQR(days_open_count, na.rm = TRUE),
+    min_days_open_count = min(days_open_count, na.rm = TRUE),
+    max_days_open_count = max(days_open_count, na.rm = TRUE),
+    
+    median_foods_count = median(foods_count, na.rm = TRUE),
+    iqr_foods_count = IQR(foods_count, na.rm = TRUE),
+    min_foods_count = min(foods_count, na.rm = TRUE),
+    max_foods_count = max(foods_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Display the overall results
+print(overall_summary_stats)
+```
