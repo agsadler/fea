@@ -975,7 +975,7 @@ tab2_data <- tab2_median_iqr %>%
 
 
 # Create the gt table
-tab2 <- tab2_data %>%
+tab2_circle <- tab2_data %>%
   gt(rowname_col = "circle", groupname_col = c("country","city")) %>%
   cols_label(
     country = "Country",
@@ -988,45 +988,21 @@ tab2 <- tab2_data %>%
     iqr_org_foods_count = " "
   ) %>%
   fmt_percent(
-    columns = vars(higher_perc, middle_perc, lower_perc,
-                   mobile_vendor_perc, stationary_small_vendor_perc,
-                   supermarket_perc),
+    columns = vars(org_vendor_perc),
     decimals = 0
   ) %>%
   cols_merge(
-    columns = c("Higher", "higher_perc"),
+    columns = c("count_org_vendors", "org_vendor_perc"),
     pattern = "{1} ({2})"
   ) %>%
   cols_merge(
-    columns = c("Middle", "middle_perc"),
-    pattern = "{1} ({2})"
-  ) %>%
-  cols_merge(
-    columns = c("Lower", "lower_perc"),
-    pattern = "{1} ({2})"
-  ) %>%
-  cols_merge(
-    columns = c("Mobile vendor", "mobile_vendor_perc"),
-    pattern = "{1} ({2})"
-  ) %>%
-  cols_merge(
-    columns = c("Stationary small local vendor",
-                "stationary_small_vendor_perc"),
-    pattern = "{1} ({2})"
-  ) %>%
-  cols_merge(
-    columns = c("Supermarket", "supermarket_perc"),
+    columns = c("median_org_foods_count", "iqr_org_foods_count"),
     pattern = "{1} ({2})"
   ) %>%
   summary_rows(
     groups = everything(),
-    columns = vars(total_vendors, Higher, higher_perc,
-                   Middle, middle_perc,
-                   Lower, lower_perc, 
-                   `Mobile vendor`, mobile_vendor_perc,
-                   `Stationary small local vendor`,
-                   stationary_small_vendor_perc,
-                   Supermarket, supermarket_perc),
+    columns = vars(vendors, count_org_vendors, org_vendor_perc,
+                   median_org_foods_count, iqr_org_foods_count),
     fns = list(total = ~sum(., na.rm = TRUE)),
     formatter = fmt_number,
     decimals = 0
@@ -1034,15 +1010,15 @@ tab2 <- tab2_data %>%
   sub_missing() 
   
 # Display the table
-tab1
+tab2_circle
 
 # Note: I can't seem to get it to also have the percentage columns
 # Note: Also don't know how to do a grand total - keep getting errors
 
 # Export to table_outputs workbook
 
-addWorksheet(table_outputs, "Table 1")
-writeData(table_outputs, sheet = "Table 1", x = tab1)
+addWorksheet(table_outputs, "Table 2 - circle")
+writeData(table_outputs, sheet = "Table 2 - circle", x = tab2)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 
