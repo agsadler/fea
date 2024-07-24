@@ -9,6 +9,7 @@ output: word_document
 # Load necessary libraries
 library(dplyr)
 library(gmodels)
+library(gt)
 library(knitr)
 library(kableExtra)
 library(openxlsx)
@@ -27,6 +28,123 @@ data_clean <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/F
 
 ```
 
+## Descriptive Results
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Generate Table 1
+
+# Calculate total vendors per city
+overall_data <- data_clean %>%
+  group_by(country, city) %>%
+  summarise(total_vendors = n()) %>%
+  ungroup()
+
+# Calculate neighbourhood counts and percentages
+neighbourhood_data <- data_clean %>%
+  group_by(country, city, circle) %>%
+  summarise(count = n()) %>%
+  pivot_wider(names_from = circle, values_from = count, values_fill = list(count = 0)) %>%
+  ungroup() %>%
+  left_join(overall_data, by = c("country", "city")) %>%
+  mutate(
+    higher_perc = Higher / total_vendors,
+    middle_perc = Middle / total_vendors,
+    lower_perc = Lower / total_vendors
+  ) %>%
+  select(country, city, total_vendors, Higher, higher_perc, Middle, middle_perc, Lower, lower_perc)
+
+# Calculate store type counts and percentages
+store_data <- data_clean %>%
+  group_by(country, city, vendor_type) %>%
+  summarise(count = n()) %>%
+  pivot_wider(names_from = vendor_type, values_from = count, values_fill = list(count = 0)) %>%
+  ungroup() %>%
+  left_join(overall_data, by = c("country", "city")) %>%
+  mutate(
+    supermarket_perc = Supermarket / total_vendors,
+    mobile_vendor_perc = `Mobile vendor` / total_vendors,
+    stationary_small_vendor_perc = `Stationary small local vendor` / total_vendors
+  ) %>%
+  select(country, city, `Mobile vendor`, mobile_vendor_perc, `Stationary small local vendor`, stationary_small_vendor_perc, Supermarket, supermarket_perc,  )
+
+
+# Merge both datasets
+tab1_data <- neighbourhood_data %>%
+  left_join(store_data, by = c("country", "city"))
+
+
+# Create the gt table
+tab1 <- tab1_data %>%
+  gt(rowname_col = "city", groupname_col = "country") %>%
+  cols_label(
+    city = "City",
+    total_vendors = "Total vendors",
+    Higher = "Higher",
+    higher_perc = " ",
+    Middle = "Middle",
+    middle_perc = " ",
+    Lower = "Lower",
+    lower_perc = " ",
+    `Mobile vendor` = "Mobile vendor",
+    mobile_vendor_perc = " ",
+    `Stationary small local vendor` = "Stationary small vendor",
+    stationary_small_vendor_perc = " ",
+    Supermarket = "Supermarket",
+    supermarket_perc = " "
+  ) %>%
+  fmt_percent(
+    columns = vars(higher_perc, middle_perc, lower_perc,
+                   mobile_vendor_perc, stationary_small_vendor_perc,
+                   supermarket_perc),
+    decimals = 0
+  ) %>%
+  cols_merge(
+    columns = c("Higher", "higher_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Middle", "middle_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Lower", "lower_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Mobile vendor", "mobile_vendor_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Stationary small local vendor",
+                "stationary_small_vendor_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Supermarket", "supermarket_perc"),
+    pattern = "{1} ({2})"
+  ) #%>%
+#  summary_rows(
+#    groups = TRUE,
+#    columns = vars(total_vendors, Higher, higher_perc,
+#                   Middle, middle_perc,
+#                   Lower, lower_perc, 
+#                   `Mobile vendor`, mobile_vendor_perc,
+#                   `Stationary small local vendor`,
+#                   stationary_small_vendor_perc,
+#                   Supermarket, supermarket_perc),
+#    fns = list(Total = ~sum(.x, na.rm = TRUE)),
+#    formatter = fmt_number,
+#    decimals = 0
+#  )
+  
+# Display the table
+tab1
+
+
+
+```
+
+
 
 ## 1. What is the availability of organic food in urban food environments? How does this vary across different geographic and socioeconomic contexts?
 
@@ -37,17 +155,15 @@ data_clean <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/F
 ##### Overall results (variation between countries)
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
-# Country-level analysis
+# Create data frame of country and org_foods_count
+kruskal_country_data <- data_clean %>%
+  select(country, org_foods_count)
 
-  # Create data frame of country and org_foods_count
-  kruskal_country_data <- data_clean %>%
-    select(country, org_foods_count)
-
-  # Perform the Kruskal-Wallis test
-  result1 <- kruskal.test(org_foods_count ~ country, data = kruskal_country_data)
+# Perform the Kruskal-Wallis test
+result_overall <- kruskal.test(org_foods_count ~ country, data = kruskal_country_data)
   
-  # Display the results
-  print(result1)
+# Display the results
+print(result_overall)
 
 ```
 
@@ -66,10 +182,10 @@ kruskal_brazil_city_data <- brazil %>%
   select(city, org_foods_count)
 
 # Perform the Kruskal-Wallis test
-result2 <- kruskal.test(org_foods_count ~ city, data = kruskal_brazil_city_data)
+result_brazil <- kruskal.test(org_foods_count ~ city, data = kruskal_brazil_city_data)
   
 # Display the results
-print(result2)
+print(result_brazil)
 
 ```
 
@@ -86,10 +202,10 @@ kruskal_india_city_data <- india %>%
   select(city, org_foods_count)
 
 # Perform the Kruskal-Wallis test
-result3 <- kruskal.test(org_foods_count ~ city, data = kruskal_india_city_data)
+result_india <- kruskal.test(org_foods_count ~ city, data = kruskal_india_city_data)
   
 # Display the results
-print(result3)
+print(result_india)
 
 ```
 
@@ -106,10 +222,10 @@ kruskal_uk_city_data <- uk %>%
   select(city, org_foods_count)
 
 # Perform the Kruskal-Wallis test
-result4 <- kruskal.test(org_foods_count ~ city, data = kruskal_uk_city_data)
+result_uk <- kruskal.test(org_foods_count ~ city, data = kruskal_uk_city_data)
   
 # Display the results
-print(result4)
+print(result_uk)
 
 ```
 
@@ -128,10 +244,10 @@ kruskal_rio_data <- rio %>%
   select(circle, org_foods_count)
 
 # Perform the Kruskal-Wallis test
-result7 <- kruskal.test(org_foods_count ~ circle, data = kruskal_rio_data)
+result_rio <- kruskal.test(org_foods_count ~ circle, data = kruskal_rio_data)
   
 # Display the results
-print(result7)
+print(result_rio)
 
 ```
 
@@ -148,10 +264,10 @@ kruskal_saopaulo_data <- saopaulo %>%
   select(circle, org_foods_count)
 
 # Perform the Kruskal-Wallis test
-result5 <- kruskal.test(org_foods_count ~ circle, data = kruskal_saopaulo_data)
+result_saopaulo <- kruskal.test(org_foods_count ~ circle, data = kruskal_saopaulo_data)
   
 # Display the results
-print(result5)
+print(result_saopaulo)
 
 ```
 
@@ -168,10 +284,10 @@ kruskal_sinop_data <- sinop %>%
   select(circle, org_foods_count)
 
 # Perform the Kruskal-Wallis test
-result6 <- kruskal.test(org_foods_count ~ circle, data = kruskal_sinop_data)
+result_sinop <- kruskal.test(org_foods_count ~ circle, data = kruskal_sinop_data)
   
 # Display the results
-print(result6)
+print(result_sinop)
 
 ```
 
@@ -189,10 +305,10 @@ kruskal_hyderabad_data <- hyderabad %>%
   select(circle, org_foods_count)
 
 # Perform the Kruskal-Wallis test
-result8 <- kruskal.test(org_foods_count ~ circle, data = kruskal_hyderabad_data)
+result_hyderabad <- kruskal.test(org_foods_count ~ circle, data = kruskal_hyderabad_data)
   
 # Display the results
-print(result8)
+print(result_hyderabad)
 
 ```
 
@@ -209,10 +325,10 @@ kruskal_latur_data <- latur %>%
   select(circle, org_foods_count)
 
 # Perform the Kruskal-Wallis test
-result9 <- kruskal.test(org_foods_count ~ circle, data = kruskal_latur_data)
+result_latur <- kruskal.test(org_foods_count ~ circle, data = kruskal_latur_data)
   
 # Display the results
-print(result9)
+print(result_latur)
 
 ```
 
@@ -229,10 +345,10 @@ kruskal_visakhapatnam_data <- visakhapatnam %>%
   select(circle, org_foods_count)
 
 # Perform the Kruskal-Wallis test
-result10 <- kruskal.test(org_foods_count ~ circle, data = kruskal_visakhapatnam_data)
+result_visakhapatnam <- kruskal.test(org_foods_count ~ circle, data = kruskal_visakhapatnam_data)
   
 # Display the results
-print(result10)
+print(result_visakhapatnam)
 
 ```
 
@@ -249,10 +365,10 @@ kruskal_birmingham_data <- birmingham %>%
   select(circle, org_foods_count)
 
 # Perform the Kruskal-Wallis test
-result11 <- kruskal.test(org_foods_count ~ circle, data = kruskal_birmingham_data)
+result_birmingham <- kruskal.test(org_foods_count ~ circle, data = kruskal_birmingham_data)
   
 # Display the results
-print(result11)
+print(result_birmingham)
 
 ```
 
@@ -269,10 +385,10 @@ kruskal_edinburgh_data <- edinburgh %>%
   select(circle, org_foods_count)
 
 # Perform the Kruskal-Wallis test
-result12 <- kruskal.test(org_foods_count ~ circle, data = kruskal_edinburgh_data)
+result_edinburgh <- kruskal.test(org_foods_count ~ circle, data = kruskal_edinburgh_data)
   
 # Display the results
-print(result12)
+print(result_edinburgh)
 
 ```
 
@@ -289,14 +405,14 @@ kruskal_london_data <- london %>%
   select(circle, org_foods_count)
 
 # Perform the Kruskal-Wallis test
-result13 <- kruskal.test(org_foods_count ~ circle, data = kruskal_london_data)
+result_london <- kruskal.test(org_foods_count ~ circle, data = kruskal_london_data)
   
 # Display the results
-print(result13)
+print(result_london)
 
 ```
 
-#### Fisher's Exact test
+#### Chi-squared test
 
 ##### Overall results (variation between countries)
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
@@ -316,10 +432,10 @@ rownames(data_matrix) <- contingency_table$country
 print(data_matrix)
 
 # Perform Chi-squared test
-chi_sq_result_overall <- chisq.test(data_matrix)
+chi_result_overall <- chisq.test(data_matrix)
 
 # Display the results
-print(chi_squared_result)
+print(chi_result_overall)
 
 ```
 
@@ -343,11 +459,12 @@ rownames(data_matrix) <- contingency_table$city
 # Display the matrix to check if it's correct
 print(data_matrix)
 
-# Perform Fisher's Exact Test with Monte Carlo simulation
-fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+# Perform Chi-squared test
+chi_result_brazil <- chisq.test(data_matrix)
 
 # Display the results
-print(fisher_mc_result)
+print(chi_result_brazil)
+
 ```
 
 ###### India
@@ -368,11 +485,11 @@ rownames(data_matrix) <- contingency_table$city
 # Display the matrix to check if it's correct
 print(data_matrix)
 
-# Perform Fisher's Exact Test with Monte Carlo simulation
-fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+# Perform Chi-squared test
+chi_result_india <- chisq.test(data_matrix)
 
 # Display the results
-print(fisher_mc_result)
+print(chi_result_india)
 ```
 
 ###### United Kingdom
@@ -393,11 +510,11 @@ rownames(data_matrix) <- contingency_table$city
 # Display the matrix to check if it's correct
 print(data_matrix)
 
-# Perform Fisher's Exact Test with Monte Carlo simulation
-fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+# Perform Chi-squared test
+chi_result_uk <- chisq.test(data_matrix)
 
 # Display the results
-print(fisher_mc_result)
+print(chi_result_uk)
 ```
 
 ##### Neighbourhood-level results (variation between neighbourhoods within a given city)
@@ -421,11 +538,11 @@ rownames(data_matrix) <- contingency_table$circle
 # Display the matrix to check if it's correct
 print(data_matrix)
 
-# Perform Fisher's Exact Test with Monte Carlo simulation
-fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+# Perform Chi-squared test
+chi_result_rio <- chisq.test(data_matrix)
 
 # Display the results
-print(fisher_mc_result)
+print(chi_result_rio)
 
 ```
 
@@ -449,11 +566,11 @@ rownames(data_matrix) <- contingency_table$circle
 # Display the matrix to check if it's correct
 print(data_matrix)
 
-# Perform Fisher's Exact Test with Monte Carlo simulation
-fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+# Perform Chi-squared test
+chi_result_saopaulo <- chisq.test(data_matrix)
 
 # Display the results
-print(fisher_mc_result)
+print(chi_result_saopaulo)
 
 ```
 
@@ -476,11 +593,11 @@ rownames(data_matrix) <- contingency_table$circle
 # Display the matrix to check if it's correct
 print(data_matrix)
 
-# Perform Fisher's Exact Test with Monte Carlo simulation
-fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+# Perform Chi-squared test
+chi_result_sinop <- chisq.test(data_matrix)
 
 # Display the results
-print(fisher_mc_result)
+print(chi_result_sinop)
 
 ```
 
@@ -503,11 +620,11 @@ rownames(data_matrix) <- contingency_table$circle
 # Display the matrix to check if it's correct
 print(data_matrix)
 
-# Perform Fisher's Exact Test with Monte Carlo simulation
-fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+# Perform Chi-squared test
+chi_result_hyderabad <- chisq.test(data_matrix)
 
 # Display the results
-print(fisher_mc_result)
+print(chi_result_hyderabad)
 
 ```
 
@@ -530,11 +647,11 @@ rownames(data_matrix) <- contingency_table$circle
 # Display the matrix to check if it's correct
 print(data_matrix)
 
-# Perform Fisher's Exact Test with Monte Carlo simulation
-fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+# Perform Chi-squared test
+chi_result_latur <- chisq.test(data_matrix)
 
 # Display the results
-print(fisher_mc_result)
+print(chi_result_latur)
 
 ```
 
@@ -557,12 +674,11 @@ rownames(data_matrix) <- contingency_table$circle
 # Display the matrix to check if it's correct
 print(data_matrix)
 
-# Perform Fisher's Exact Test with Monte Carlo simulation
-fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+# Perform Chi-squared test
+chi_result_latur <- chisq.test(data_matrix)
 
 # Display the results
-print(fisher_mc_result)
-
+print(chi_result_latur)
 ```
 
 ###### United Kingdom: Birmingham
@@ -584,11 +700,11 @@ rownames(data_matrix) <- contingency_table$circle
 # Display the matrix to check if it's correct
 print(data_matrix)
 
-# Perform Fisher's Exact Test with Monte Carlo simulation
-fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+# Perform Chi-squared test
+chi_result_birmingham <- chisq.test(data_matrix)
 
 # Display the results
-print(fisher_mc_result)
+print(chi_result_birmingham)
 
 ```
 
@@ -611,11 +727,11 @@ rownames(data_matrix) <- contingency_table$circle
 # Display the matrix to check if it's correct
 print(data_matrix)
 
-# Perform Fisher's Exact Test with Monte Carlo simulation
-fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+# Perform Chi-squared test
+chi_result_edinburgh <- chisq.test(data_matrix)
 
 # Display the results
-print(fisher_mc_result)
+print(chi_result_edinburgh)
 
 ```
 
@@ -638,11 +754,11 @@ rownames(data_matrix) <- contingency_table$circle
 # Display the matrix to check if it's correct
 print(data_matrix)
 
-# Perform Fisher's Exact Test with Monte Carlo simulation
-fisher_mc_result <- fisher.test(data_matrix, simulate.p.value = TRUE, B = 10000)
+# Perform Chi-squared test
+chi_result_london <- chisq.test(data_matrix)
 
 # Display the results
-print(fisher_mc_result)
+print(chi_result_london)
 
 ```
 
@@ -818,3 +934,9 @@ overall_summary_stats <- data_clean %>%
 # Display the overall results
 print(overall_summary_stats)
 ```
+
+
+# Create tables
+
+
+
