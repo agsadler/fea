@@ -1027,30 +1027,118 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 
 ##### For each city within each country
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-# Median and IQR for each city within each country
-city_stats <- data_clean %>%
+
+# Median and IQR number of organic sentinel foods
+tab2_city_median_iqr <- data_clean %>%
   group_by(country, city) %>%
-  summarize(
+  summarise(
     median_org_foods_count = median(org_foods_count, na.rm = TRUE),
     iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
-print(city_stats)
+# Count and proportion of vendors with at least one organic sentinal food
+
+  # Count total vendors and organic vendors per city
+  tab2_city_count_org <- data_clean %>%
+    group_by(country, city) %>%
+    summarise(
+      vendors = n(),
+      count_org_vendors = sum(org_vendor == 1, na.rm = TRUE)
+    ) %>%
+    ungroup() %>%
+    mutate(org_vendor_perc = count_org_vendors / vendors)
+
+# Merge both datasets
+tab2_city_data <- tab2_city_median_iqr %>%
+  left_join(tab2_city_count_org, by = c("country", "city")) %>%
+  select(country,city,vendors,count_org_vendors,org_vendor_perc,
+         median_org_foods_count,iqr_org_foods_count)
+
+
+# Create the gt table
+tab2_city <- tab2_city_data %>%
+  gt(rowname_col = "city", groupname_col = c("country")) %>%
+  cols_label(
+    country = "Country",
+    city = "City",
+    vendors = "Total vendors",
+    count_org_vendors = "Organic vendors, n(%)",
+    org_vendor_perc = " ",
+    median_org_foods_count = "Organic sentinel foods, median (IQR)",
+    iqr_org_foods_count = " "
+  ) %>%
+  fmt_percent(
+    columns = vars(org_vendor_perc),
+    decimals = 0
+  ) %>%
+  cols_merge(
+    columns = c("count_org_vendors", "org_vendor_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("median_org_foods_count", "iqr_org_foods_count"),
+    pattern = "{1} ({2})"
+  ) %>%
+  summary_rows(
+    groups = everything(),
+    columns = vars(vendors, count_org_vendors, org_vendor_perc,
+                   median_org_foods_count, iqr_org_foods_count),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tab2_city
+
+# Note: I can't seem to get it to also have the percentage columns
+# Note: Also don't know how to do a grand total - keep getting errors
+
+# Export to table_outputs workbook
+
+addWorksheet(table_outputs, "Table 2 - city")
+writeData(table_outputs, sheet = "Table 2 - city", x = tab2_city)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
 ```
 
 ##### For each country
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-# Median and IQR for each country
-country_stats <- data_clean %>%
+
+# Median and IQR number of organic sentinel foods
+tab2_country_median_iqr <- data_clean %>%
   group_by(country) %>%
-  summarize(
+  summarise(
     median_org_foods_count = median(org_foods_count, na.rm = TRUE),
     iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
-print(country_stats)
+# Count and proportion of vendors with at least one organic sentinal food
+
+  # Count total vendors and organic vendors per city
+  tab2_country_count_org <- data_clean %>%
+    group_by(country) %>%
+    summarise(
+      vendors = n(),
+      count_org_vendors = sum(org_vendor == 1, na.rm = TRUE)
+    ) %>%
+    ungroup() %>%
+    mutate(org_vendor_perc = count_org_vendors / vendors)
+
+# Merge both datasets
+tab2_country_data <- tab2_country_median_iqr %>%
+  left_join(tab2_country_count_org, by = c("country")) %>%
+  select(country,vendors,count_org_vendors,org_vendor_perc,
+         median_org_foods_count,iqr_org_foods_count)
+
+# Export to table_outputs workbook
+
+addWorksheet(table_outputs, "Table 2 - country")
+writeData(table_outputs, sheet = "Table 2 - country", x = tab2_country_data)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
 
 ##### Overall
