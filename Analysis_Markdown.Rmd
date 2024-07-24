@@ -23,8 +23,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r, include=FALSE}
 
+# Set working directory
+setwd("C:/Users/s1985751/Documents/GitHub/fea")
+
+
 # Load cleaned data
-data_clean <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Assessment/Data analysis/R/combined_data.xlsx")
+data_clean <- read.xlsx("C:/Users/s1985751/Documents/GitHub/fea/data_clean.xlsx", sheet = "data")
+
+# Create workbook for table data
+table_outputs <- createWorkbook()
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
 
 ```
 
@@ -34,18 +43,18 @@ data_clean <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/F
 # Generate Table 1
 
 # Calculate total vendors per city
-overall_data <- data_clean %>%
+tab1_total_vendors <- data_clean %>%
   group_by(country, city) %>%
   summarise(total_vendors = n()) %>%
   ungroup()
 
 # Calculate neighbourhood counts and percentages
-neighbourhood_data <- data_clean %>%
+tab1_neighbourhood_data <- data_clean %>%
   group_by(country, city, circle) %>%
   summarise(count = n()) %>%
   pivot_wider(names_from = circle, values_from = count, values_fill = list(count = 0)) %>%
   ungroup() %>%
-  left_join(overall_data, by = c("country", "city")) %>%
+  left_join(tab1_total_vendors, by = c("country", "city")) %>%
   mutate(
     higher_perc = Higher / total_vendors,
     middle_perc = Middle / total_vendors,
@@ -54,12 +63,12 @@ neighbourhood_data <- data_clean %>%
   select(country, city, total_vendors, Higher, higher_perc, Middle, middle_perc, Lower, lower_perc)
 
 # Calculate store type counts and percentages
-store_data <- data_clean %>%
+tab1_store_data <- data_clean %>%
   group_by(country, city, vendor_type) %>%
   summarise(count = n()) %>%
   pivot_wider(names_from = vendor_type, values_from = count, values_fill = list(count = 0)) %>%
   ungroup() %>%
-  left_join(overall_data, by = c("country", "city")) %>%
+  left_join(tab1_total_vendors, by = c("country", "city")) %>%
   mutate(
     supermarket_perc = Supermarket / total_vendors,
     mobile_vendor_perc = `Mobile vendor` / total_vendors,
@@ -69,8 +78,8 @@ store_data <- data_clean %>%
 
 
 # Merge both datasets
-tab1_data <- neighbourhood_data %>%
-  left_join(store_data, by = c("country", "city"))
+tab1_data <- tab1_neighbourhood_data %>%
+  left_join(tab1_store_data, by = c("country", "city"))
 
 
 # Create the gt table
@@ -122,24 +131,33 @@ tab1 <- tab1_data %>%
   cols_merge(
     columns = c("Supermarket", "supermarket_perc"),
     pattern = "{1} ({2})"
-  ) #%>%
-#  summary_rows(
-#    groups = TRUE,
-#    columns = vars(total_vendors, Higher, higher_perc,
-#                   Middle, middle_perc,
-#                   Lower, lower_perc, 
-#                   `Mobile vendor`, mobile_vendor_perc,
-#                   `Stationary small local vendor`,
-#                   stationary_small_vendor_perc,
-#                   Supermarket, supermarket_perc),
-#    fns = list(Total = ~sum(.x, na.rm = TRUE)),
-#    formatter = fmt_number,
-#    decimals = 0
-#  )
+  ) %>%
+  summary_rows(
+    groups = everything(),
+    columns = vars(total_vendors, Higher, higher_perc,
+                   Middle, middle_perc,
+                   Lower, lower_perc, 
+                   `Mobile vendor`, mobile_vendor_perc,
+                   `Stationary small local vendor`,
+                   stationary_small_vendor_perc,
+                   Supermarket, supermarket_perc),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0
+  ) %>%
+  sub_missing() 
   
 # Display the table
 tab1
 
+# Note: I can't seem to get it to also have the percentage columns
+# Note: Also don't know how to do a grand total - keep getting errors
+
+# Export to table_outputs workbook
+
+addWorksheet(table_outputs, "Table 1")
+writeData(table_outputs, sheet = "Table 1", x = tab1)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 
 ```
@@ -229,7 +247,7 @@ print(result_uk)
 
 ```
 
-##### Neighbourhood-level results (variation between neighbourhoods within a given city)
+##### City-level results (variation between neighbourhoods within a given city)
 
 ###### Brazil: Rio de Janeiro
 
@@ -411,6 +429,82 @@ result_london <- kruskal.test(org_foods_count ~ circle, data = kruskal_london_da
 print(result_london)
 
 ```
+
+##### Summary of p-values
+
+###### Overall p-value
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+p_values_kruskal_overall <- result_overall$p.value
+
+print(p_values_kruskal_overall)
+```
+
+
+###### Country-level p-values
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create a vector of country names
+country_names <- c("Brazil","India","UK")
+
+# Create a vector of the result object names
+kruskal_country_result_names <- c("result_brazil", "result_india", "result_uk")
+
+# Retrieve results and store in a list
+kruskal_country_result_list <- mget(kruskal_country_result_names)
+
+# Print list to confirm
+print(kruskal_country_result_list)
+
+# Extract p-values from the results
+p_values_kruskal_country <- sapply(kruskal_country_result_list, function(res) res$p.value)
+
+# Create a dataframe
+p_values_kruskal_country_df <- data.frame(
+  Country = country_names,
+  PValue = p_values_kruskal_country
+)
+
+print(p_values_kruskal_country_df)
+
+```
+
+###### City-level p-values
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create a vector of city names
+city_names <- c("Rio de Janeiro","Sao Paolo","Sinop",
+                "Hyderabad","Latur","Visakhapatnam",
+                "Birmingham","Edinburgh","London")
+
+# Create a vector of the result object names
+kruskal_city_result_names <- c("result_rio","result_saopaulo","result_sinop",
+                               "result_hyderabad","result_latur",
+                               "result_visakhapatnam","result_birmingham",
+                               "result_edinburgh","result_london")
+
+# Retrieve results and store in a list
+kruskal_city_result_list <- mget(kruskal_city_result_names)
+
+# Print list to confirm
+print(kruskal_city_result_list)
+
+# Extract p-values from the results
+p_values_kruskal_city <- sapply(kruskal_city_result_list, function(res) res$p.value)
+
+# Create a dataframe
+p_values_kruskal_city_df <- data.frame(
+  City = city_names,
+  PValue = p_values_kruskal_city
+)
+
+print(p_values_kruskal_city_df)
+
+
+```
+
 
 #### Chi-squared test
 
@@ -675,10 +769,10 @@ rownames(data_matrix) <- contingency_table$circle
 print(data_matrix)
 
 # Perform Chi-squared test
-chi_result_latur <- chisq.test(data_matrix)
+chi_result_visakhapatnam <- chisq.test(data_matrix)
 
 # Display the results
-print(chi_result_latur)
+print(chi_result_visakhapatnam)
 ```
 
 ###### United Kingdom: Birmingham
@@ -762,21 +856,197 @@ print(chi_result_london)
 
 ```
 
+##### Summary of p-values
 
-#### Median and interquartile range
+###### Overall p-value
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+p_values_chi_overall <- chi_result_overall$p.value
+
+print(p_values_chi_overall)
+```
+
+
+###### Country-level p-values
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create a vector of country names
+country_names <- c("Brazil","India","UK")
+
+# Create a vector of the result object names
+chi_country_result_names <- c("chi_result_brazil", "chi_result_india", "chi_result_uk")
+
+# Retrieve results and store in a list
+chi_country_result_list <- mget(chi_country_result_names)
+
+# Print list to confirm
+print(chi_country_result_list)
+
+# Extract p-values from the results
+p_values_chi_country <- sapply(chi_country_result_list, function(res) res$p.value)
+
+# Create a dataframe
+p_values_chi_country_df <- data.frame(
+  Country = country_names,
+  PValue = p_values_chi_country
+)
+
+print(p_values_chi_country_df)
+
+```
+
+
+###### City-level p-values
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create a vector of city names
+city_names <- c("Rio de Janeiro","Sao Paolo","Sinop",
+                "Hyderabad","Latur","Visakhapatnam",
+                "Birmingham","Edinburgh","London")
+
+# Create a vector of the result object names
+chi_city_result_names <- c("chi_result_rio","chi_result_saopaulo",
+                          "chi_result_sinop","chi_result_hyderabad",
+                          "chi_result_latur","chi_result_visakhapatnam",
+                          "chi_result_birmingham", "chi_result_edinburgh",
+                          "chi_result_london")
+
+# Retrieve results and store in a list
+chi_city_result_list <- mget(chi_city_result_names)
+
+# Print list to confirm
+print(chi_city_result_list)
+
+# Extract p-values from the results
+p_values_chi_city <- sapply(chi_city_result_list, function(res) res$p.value)
+
+# Create a dataframe
+p_values_chi_city_df <- data.frame(
+  City = city_names,
+  PValue = p_values_chi_city
+)
+
+print(p_values_chi_city_df)
+
+
+```
+
+
+#### Summary statistics
 
 ##### For each neighbourhood within each city
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-# Median and IQR for each neighborhood within each city
-neighborhood_stats <- data_clean %>%
+
+# Define order of neighbourhood variable
+circle_order <- c("Higher","Middle","Lower")
+  
+# Convert the circle column to a factor with the specified levels
+data_clean <- data_clean %>%
+  mutate(circle = factor(circle, levels = circle_order))
+
+# Median and IQR number of organic sentinel foods
+tab2_median_iqr <- data_clean %>%
   group_by(country, city, circle) %>%
-  summarize(
+  summarise(
     median_org_foods_count = median(org_foods_count, na.rm = TRUE),
     iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
-print(neighborhood_stats)
+# Count and proportion of vendors with at least one organic sentinal food
+
+  # Count total vendors and organic vendors per neighbourhood
+  tab2_count_org <- data_clean %>%
+    group_by(country, city, circle) %>%
+    summarise(
+      vendors = n(),
+      count_org_vendors = sum(org_vendor == 1, na.rm = TRUE)
+    ) %>%
+    ungroup() %>%
+    mutate(org_vendor_perc = count_org_vendors / vendors)
+
+# Merge both datasets
+tab2_data <- tab2_median_iqr %>%
+  left_join(tab2_count_org, by = c("country", "city", "circle")) %>%
+  select(country,city,circle,vendors,count_org_vendors,org_vendor_perc,
+         median_org_foods_count,iqr_org_foods_count)
+
+
+# Create the gt table
+tab2 <- tab2_data %>%
+  gt(rowname_col = "circle", groupname_col = c("country","city")) %>%
+  cols_label(
+    country = "Country",
+    city = "City",
+    circle = "Neighbourhood",
+    vendors = "Total vendors",
+    count_org_vendors = "Organic vendors, n(%)",
+    org_vendor_perc = " ",
+    median_org_foods_count = "Organic sentinel foods, median (IQR)",
+    iqr_org_foods_count = " "
+  ) %>%
+  fmt_percent(
+    columns = vars(higher_perc, middle_perc, lower_perc,
+                   mobile_vendor_perc, stationary_small_vendor_perc,
+                   supermarket_perc),
+    decimals = 0
+  ) %>%
+  cols_merge(
+    columns = c("Higher", "higher_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Middle", "middle_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Lower", "lower_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Mobile vendor", "mobile_vendor_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Stationary small local vendor",
+                "stationary_small_vendor_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Supermarket", "supermarket_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  summary_rows(
+    groups = everything(),
+    columns = vars(total_vendors, Higher, higher_perc,
+                   Middle, middle_perc,
+                   Lower, lower_perc, 
+                   `Mobile vendor`, mobile_vendor_perc,
+                   `Stationary small local vendor`,
+                   stationary_small_vendor_perc,
+                   Supermarket, supermarket_perc),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tab1
+
+# Note: I can't seem to get it to also have the percentage columns
+# Note: Also don't know how to do a grand total - keep getting errors
+
+# Export to table_outputs workbook
+
+addWorksheet(table_outputs, "Table 1")
+writeData(table_outputs, sheet = "Table 1", x = tab1)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+
+
 ```
 
 ##### For each city within each country

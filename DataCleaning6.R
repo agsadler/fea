@@ -1817,7 +1817,18 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
   
         
 # 13. EXPORT DATA TO EXCEL FILES----
-write.xlsx(combined_data, "combined_data.xlsx")  
-write.xlsx(qdata1, "qdata1.xlsx")
-write.xlsx(rdata1, "rdata1.xlsx")
-write.xlsx(data_types, "data_types.xlsx")
+
+# Create workbook of cleaned data
+data_clean <- createWorkbook()
+addWorksheet(data_clean, "data")
+  
+# Export cleaned data
+writeData(data_clean, sheet = "data", x = combined_data)
+
+# Save the workbook
+saveWorkbook(data_clean, "C:/Users/s1985751/Documents/GitHub/fea/data_clean.xlsx", overwrite = TRUE)
+
+#write.xlsx(combined_data, "combined_data.xlsx")  
+#write.xlsx(qdata1, "qdata1.xlsx")
+#write.xlsx(rdata1, "rdata1.xlsx")
+#write.xlsx(data_types, "data_types.xlsx")
