@@ -54,7 +54,7 @@ tab1_neighbourhood_data <- data_clean %>%
   summarise(count = n()) %>%
   pivot_wider(names_from = circle, values_from = count, values_fill = list(count = 0)) %>%
   ungroup() %>%
-  left_join(tab1_total_vendors, by = c("country", "city")) %>%
+  left_join(overall_data, by = c("country", "city")) %>%
   mutate(
     higher_perc = Higher / total_vendors,
     middle_perc = Middle / total_vendors,
@@ -68,7 +68,7 @@ tab1_store_data <- data_clean %>%
   summarise(count = n()) %>%
   pivot_wider(names_from = vendor_type, values_from = count, values_fill = list(count = 0)) %>%
   ungroup() %>%
-  left_join(tab1_total_vendors, by = c("country", "city")) %>%
+  left_join(overall_data, by = c("country", "city")) %>%
   mutate(
     supermarket_perc = Supermarket / total_vendors,
     mobile_vendor_perc = `Mobile vendor` / total_vendors,
@@ -968,14 +968,14 @@ tab2_median_iqr <- data_clean %>%
     mutate(org_vendor_perc = count_org_vendors / vendors)
 
 # Merge both datasets
-tab2_data <- tab2_median_iqr %>%
+tab2_neighbourhood_data <- tab2_median_iqr %>%
   left_join(tab2_count_org, by = c("country", "city", "circle")) %>%
   select(country,city,circle,vendors,count_org_vendors,org_vendor_perc,
          median_org_foods_count,iqr_org_foods_count)
 
 
 # Create the gt table
-tab2_circle <- tab2_data %>%
+tab2_neighbourhood <- tab2_neighbourhood_data %>%
   gt(rowname_col = "circle", groupname_col = c("country","city")) %>%
   cols_label(
     country = "Country",
@@ -1010,15 +1010,15 @@ tab2_circle <- tab2_data %>%
   sub_missing() 
   
 # Display the table
-tab2_circle
+tab2_neighbourhood
 
 # Note: I can't seem to get it to also have the percentage columns
 # Note: Also don't know how to do a grand total - keep getting errors
 
 # Export to table_outputs workbook
 
-addWorksheet(table_outputs, "Table 2 - circle")
-writeData(table_outputs, sheet = "Table 2 - circle", x = tab2)
+addWorksheet(table_outputs, "Table 2")
+writeData(table_outputs, sheet = "Table 2", x = tab2)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 
@@ -1027,11 +1027,10 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 
 ##### For each city within each country
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-
-# Median and IQR number of organic sentinel foods
+# Median and IQR for each city within each country
 tab2_city_median_iqr <- data_clean %>%
   group_by(country, city) %>%
-  summarise(
+  summarize(
     median_org_foods_count = median(org_foods_count, na.rm = TRUE),
     iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
   ) %>%
@@ -1056,89 +1055,22 @@ tab2_city_data <- tab2_city_median_iqr %>%
          median_org_foods_count,iqr_org_foods_count)
 
 
-# Create the gt table
-tab2_city <- tab2_city_data %>%
-  gt(rowname_col = "city", groupname_col = c("country")) %>%
-  cols_label(
-    country = "Country",
-    city = "City",
-    vendors = "Total vendors",
-    count_org_vendors = "Organic vendors, n(%)",
-    org_vendor_perc = " ",
-    median_org_foods_count = "Organic sentinel foods, median (IQR)",
-    iqr_org_foods_count = " "
-  ) %>%
-  fmt_percent(
-    columns = vars(org_vendor_perc),
-    decimals = 0
-  ) %>%
-  cols_merge(
-    columns = c("count_org_vendors", "org_vendor_perc"),
-    pattern = "{1} ({2})"
-  ) %>%
-  cols_merge(
-    columns = c("median_org_foods_count", "iqr_org_foods_count"),
-    pattern = "{1} ({2})"
-  ) %>%
-  summary_rows(
-    groups = everything(),
-    columns = vars(vendors, count_org_vendors, org_vendor_perc,
-                   median_org_foods_count, iqr_org_foods_count),
-    fns = list(total = ~sum(., na.rm = TRUE)),
-    formatter = fmt_number,
-    decimals = 0
-  ) %>%
-  sub_missing() 
-  
-# Display the table
-tab2_city
 
-# Note: I can't seem to get it to also have the percentage columns
-# Note: Also don't know how to do a grand total - keep getting errors
-
-# Export to table_outputs workbook
-
-addWorksheet(table_outputs, "Table 2 - city")
-writeData(table_outputs, sheet = "Table 2 - city", x = tab2_city)
-saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 
 ##### For each country
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-
-# Median and IQR number of organic sentinel foods
-tab2_country_median_iqr <- data_clean %>%
+# Median and IQR for each country
+country_stats <- data_clean %>%
   group_by(country) %>%
-  summarise(
+  summarize(
     median_org_foods_count = median(org_foods_count, na.rm = TRUE),
     iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
-# Count and proportion of vendors with at least one organic sentinal food
-
-  # Count total vendors and organic vendors per city
-  tab2_country_count_org <- data_clean %>%
-    group_by(country) %>%
-    summarise(
-      vendors = n(),
-      count_org_vendors = sum(org_vendor == 1, na.rm = TRUE)
-    ) %>%
-    ungroup() %>%
-    mutate(org_vendor_perc = count_org_vendors / vendors)
-
-# Merge both datasets
-tab2_country_data <- tab2_country_median_iqr %>%
-  left_join(tab2_country_count_org, by = c("country")) %>%
-  select(country,vendors,count_org_vendors,org_vendor_perc,
-         median_org_foods_count,iqr_org_foods_count)
-
-# Export to table_outputs workbook
-
-addWorksheet(table_outputs, "Table 2 - country")
-writeData(table_outputs, sheet = "Table 2 - country", x = tab2_country_data)
-saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+print(country_stats)
 ```
 
 ##### Overall
@@ -1270,7 +1202,12 @@ print(overall_summary_stats)
 ```
 
 
-# Create tables
+## 2. How affordable is a sentinel organic food (rice) compared to a non-organic sentinel food (rice) in urban food environments? How does this vary across different geographic contexts?
+
+### Hypothesis 2a. The price of organic rice will be significantly higher than the price of non-organic rice overall and at the country level.
+
+
+
 
 
 
