@@ -1219,64 +1219,75 @@ rice_prices_data <- read.xlsx("C:/Users/s1985751/Documents/GitHub/fea/rice_price
 ##### Overall results
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
-
-# Create data frame of country and rice_price_org_kg_usd
-mw_rice_prices_data <- rice_prices_data %>%
-  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd)
-
-# Overall Mann-Whitney U test
-overall_test <- wilcox.test(rice_price_org_kg_usd, rice_price_conv_kg_usd, 
-                            alternative = "greater", paired = "false")
-
-print(test_result)
-
-overall_p_value_one_tailed <- overall_test$p.value / 2
-
-
-
-# Create data frame of country and rice_price_org_kg_usd
-mw_rice_prices_data <- rice_prices_data %>%
-  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd)
+# Create data frame of overall prices
+mw_rice_prices_data_overall <- rice_prices_data %>%
+  select(rice_price_org_kg_usd, rice_price_conv_kg_usd)
 
 # Reshape data to long form
-reshaped_data <- mw_rice_prices_data %>%
+reshaped_data <- mw_rice_prices_data_overall %>%
   pivot_longer(cols = c(rice_price_org_kg_usd, rice_price_conv_kg_usd), 
                names_to = "type", 
                values_to = "price") %>%
   mutate(type = ifelse(type == "rice_price_org_kg_usd", "organic", "conventional")) %>%
   filter(!is.na(price))
 
+# Specify order because function otherwise sets first group alphabetically
+reshaped_data$type <- factor(reshaped_data$type, 
+                              levels = c("organic", "conventional"))
+
 # Overall Mann-Whitney U test
 overall_test <- wilcox.test(price ~ type, data = reshaped_data, 
                             alternative = "greater")
+
 overall_p_value_one_tailed <- overall_test$p.value / 2
 
-# Print overall test results
-cat("Overall Mann-Whitney test p-value (one-tailed):", overall_p_value_one_tailed, "\n")
-
+print(overall_test)
+cat("Overall Mann-Whitney U test p-value (one-tailed):", overall_p_value_one_tailed, "\n")
 
 ```
 
-##### Overall results
+
+
+
+##### Country-level results: Brazil
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
-# Function to perform Kruskal-Wallis test for each country
-country_tests <- reshaped_data %>%
-  group_by(country) %>%
-  do(test = kruskal.test(price ~ type, data = .)) %>%
-  mutate(p_value_one_tailed = test$p.value / 2)
+# BRAZIL
 
-# Print country-level test results
-country_tests %>%
-  rowwise() %>%
-  mutate(
-    country = country,
-    p_value_one_tailed = test$p.value / 2
-  ) %>%
-  select(country, p_value_one_tailed) %>%
-  print()
+# Create data frame of Brazil prices
+mw_rice_prices_data_brazil <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd) %>%
+  filter(country == "Brazil")
+  
+# Reshape data to long form
+reshaped_data_brazil <- mw_rice_prices_data_brazil %>%
+  pivot_longer(cols = c(rice_price_org_kg_usd, rice_price_conv_kg_usd), 
+               names_to = "type", 
+               values_to = "price") %>%
+  mutate(type = ifelse(type == "rice_price_org_kg_usd", "organic", "conventional")) %>%
+  filter(!is.na(price))
+
+# Specify order because function otherwise sets first group alphabetically
+reshaped_data_brazil$type <- factor(reshaped_data_brazil$type, 
+                              levels = c("organic", "conventional"))
+
+# Overall Mann-Whitney U test
+brazil_test <- wilcox.test(price ~ type, data = reshaped_data_brazil, 
+                            alternative = "greater")
+
+brazil_p_value_one_tailed <- brazil_test$p.value / 2
+
+print(brazil_test)
+cat("Overall Mann-Whitney U test p-value (one-tailed):", brazil_p_value_one_tailed, "\n")
 
 ```
+
+
+
+
+
+
+
 
 #### Table 5: City-level summary statistics
 
