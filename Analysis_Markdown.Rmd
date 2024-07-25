@@ -1246,13 +1246,8 @@ cat("Overall Mann-Whitney U test p-value (one-tailed):", overall_p_value_one_tai
 
 ```
 
-
-
-
 ##### Country-level results: Brazil
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-
-# BRAZIL
 
 # Create data frame of Brazil prices
 mw_rice_prices_data_brazil <- rice_prices_data %>%
@@ -1271,7 +1266,7 @@ reshaped_data_brazil <- mw_rice_prices_data_brazil %>%
 reshaped_data_brazil$type <- factor(reshaped_data_brazil$type, 
                               levels = c("organic", "conventional"))
 
-# Overall Mann-Whitney U test
+# Brazil Mann-Whitney U test
 brazil_test <- wilcox.test(price ~ type, data = reshaped_data_brazil, 
                             alternative = "greater")
 
@@ -1283,9 +1278,67 @@ cat("Overall Mann-Whitney U test p-value (one-tailed):", brazil_p_value_one_tail
 ```
 
 
+##### Country-level results: India
+```{r echo = FALSE, message = FALSE, warning = FALSE}
 
+# Create data frame of India prices
+mw_rice_prices_data_india <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd) %>%
+  filter(country == "India")
+  
+# Reshape data to long form
+reshaped_data_india <- mw_rice_prices_data_india %>%
+  pivot_longer(cols = c(rice_price_org_kg_usd, rice_price_conv_kg_usd), 
+               names_to = "type", 
+               values_to = "price") %>%
+  mutate(type = ifelse(type == "rice_price_org_kg_usd", "organic", "conventional")) %>%
+  filter(!is.na(price))
 
+# Specify order because function otherwise sets first group alphabetically
+reshaped_data_india$type <- factor(reshaped_data_india$type, 
+                              levels = c("organic", "conventional"))
 
+# India Mann-Whitney U test
+india_test <- wilcox.test(price ~ type, data = reshaped_data_india, 
+                            alternative = "greater")
+
+india_p_value_one_tailed <- india_test$p.value / 2
+
+print(india_test)
+cat("Overall Mann-Whitney U test p-value (one-tailed):", india_p_value_one_tailed, "\n")
+
+```
+
+##### Country-level results: UK
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of UK prices
+mw_rice_prices_data_uk <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd) %>%
+  filter(country == "UK")
+  
+# Reshape data to long form
+reshaped_data_uk <- mw_rice_prices_data_uk %>%
+  pivot_longer(cols = c(rice_price_org_kg_usd, rice_price_conv_kg_usd), 
+               names_to = "type", 
+               values_to = "price") %>%
+  mutate(type = ifelse(type == "rice_price_org_kg_usd", "organic", "conventional")) %>%
+  filter(!is.na(price))
+
+# Specify order because function otherwise sets first group alphabetically
+reshaped_data_uk$type <- factor(reshaped_data_uk$type, 
+                              levels = c("organic", "conventional"))
+
+# UK Mann-Whitney U test
+uk_test <- wilcox.test(price ~ type, data = reshaped_data_uk, 
+                            alternative = "greater")
+
+uk_p_value_one_tailed <- uk_test$p.value / 2
+
+print(uk_test)
+cat("Overall Mann-Whitney U test p-value (one-tailed):", uk_p_value_one_tailed, "\n")
+
+```
 
 
 
