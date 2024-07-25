@@ -54,7 +54,7 @@ tab1_neighbourhood_data <- data_clean %>%
   summarise(count = n()) %>%
   pivot_wider(names_from = circle, values_from = count, values_fill = list(count = 0)) %>%
   ungroup() %>%
-  left_join(overall_data, by = c("country", "city")) %>%
+  left_join(tab1_total_vendors, by = c("country", "city")) %>%
   mutate(
     higher_perc = Higher / total_vendors,
     middle_perc = Middle / total_vendors,
@@ -68,7 +68,7 @@ tab1_store_data <- data_clean %>%
   summarise(count = n()) %>%
   pivot_wider(names_from = vendor_type, values_from = count, values_fill = list(count = 0)) %>%
   ungroup() %>%
-  left_join(overall_data, by = c("country", "city")) %>%
+  left_join(tab1_total_vendors, by = c("country", "city")) %>%
   mutate(
     supermarket_perc = Supermarket / total_vendors,
     mobile_vendor_perc = `Mobile vendor` / total_vendors,
@@ -1018,7 +1018,7 @@ tab2_neighbourhood
 # Export to table_outputs workbook
 
 addWorksheet(table_outputs, "Table 2")
-writeData(table_outputs, sheet = "Table 2", x = tab2)
+writeData(table_outputs, sheet = "Table 2", x = tab2_neighbourhood)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 
