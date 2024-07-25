@@ -1207,7 +1207,165 @@ print(overall_summary_stats)
 ### Hypothesis 2a. The price of organic rice will be significantly higher than the price of non-organic rice overall and at the country level.
 
 
+```{r include=FALSE}
+
+# Load cleaned rice prices data
+rice_prices_data <- read.xlsx("C:/Users/s1985751/Documents/GitHub/fea/rice_prices_data_clean.xlsx", sheet = "data")
+
+```
+
+#### Mann-Whitney U test
+
+##### Overall results
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+
+# Create data frame of country and rice_price_org_kg_usd
+mw_rice_prices_data <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd)
+
+# Overall Mann-Whitney U test
+overall_test <- wilcox.test(rice_price_org_kg_usd, rice_price_conv_kg_usd, 
+                            alternative = "greater", paired = "false")
+
+print(test_result)
+
+overall_p_value_one_tailed <- overall_test$p.value / 2
 
 
 
+# Create data frame of country and rice_price_org_kg_usd
+mw_rice_prices_data <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd)
+
+# Reshape data to long form
+reshaped_data <- mw_rice_prices_data %>%
+  pivot_longer(cols = c(rice_price_org_kg_usd, rice_price_conv_kg_usd), 
+               names_to = "type", 
+               values_to = "price") %>%
+  mutate(type = ifelse(type == "rice_price_org_kg_usd", "organic", "conventional")) %>%
+  filter(!is.na(price))
+
+# Overall Mann-Whitney U test
+overall_test <- wilcox.test(price ~ type, data = reshaped_data, 
+                            alternative = "greater")
+overall_p_value_one_tailed <- overall_test$p.value / 2
+
+# Print overall test results
+cat("Overall Mann-Whitney test p-value (one-tailed):", overall_p_value_one_tailed, "\n")
+
+
+```
+
+##### Overall results
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Function to perform Kruskal-Wallis test for each country
+country_tests <- reshaped_data %>%
+  group_by(country) %>%
+  do(test = kruskal.test(price ~ type, data = .)) %>%
+  mutate(p_value_one_tailed = test$p.value / 2)
+
+# Print country-level test results
+country_tests %>%
+  rowwise() %>%
+  mutate(
+    country = country,
+    p_value_one_tailed = test$p.value / 2
+  ) %>%
+  select(country, p_value_one_tailed) %>%
+  print()
+
+```
+
+#### Table 5: City-level summary statistics
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Calculate number of organic and conventional vendors, median, IQR, min and max price
+tab5_summary_stats <- rice_prices_data %>%
+  group_by(country, city) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg_usd)),
+    median_org_rice = median(rice_price_org_kg_usd, na.rm = TRUE),
+    iqr_org_rice = IQR(rice_price_org_kg_usd, na.rm = TRUE),
+    min_org_rice = min(rice_price_org_kg_usd, na.rm = TRUE),
+    max_org_rice = max(rice_price_org_kg_usd, na.rm = TRUE),
+    median_conv_rice = median(rice_price_conv_kg_usd, na.rm = TRUE),
+    iqr_conv_rice = IQR(rice_price_conv_kg_usd, na.rm = TRUE),
+    min_conv_rice = min(rice_price_conv_kg_usd, na.rm = TRUE),
+    max_conv_rice = max(rice_price_conv_kg_usd, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+# Create the gt table
+tab5 <- tab5_summary_stats %>%
+  gt(rowname_col = "city", groupname_col = c("country")) %>%
+  cols_label(
+    country = "Country",
+    city = "City",
+    count_org_rice_vendors = "Organic sample size (n)",
+    count_conv_rice_vendors = "Conventional sample size (n)",
+    median_org_rice = "Organic median (IQR), min-max (US$)",
+    iqr_org_rice = " ",
+    min_org_rice = " ",
+    max_org_rice = " ",
+    median_conv_rice = "Conventional median (IQR), min-max (US$)",
+    iqr_conv_rice = " ",
+    min_conv_rice = " ",
+    max_conv_rice = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_org_rice", "iqr_org_rice", "min_org_rice", "max_org_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_conv_rice", "iqr_conv_rice", "min_conv_rice", "max_conv_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+  fmt_number(
+    columns = vars(median_org_rice, iqr_org_rice, min_org_rice, max_org_rice,
+                   median_conv_rice, iqr_conv_rice, min_conv_rice, max_conv_rice),
+    decimals = 2
+  ) %>%
+  summary_rows(
+    groups = everything(),
+    columns = vars(count_org_rice_vendors,count_conv_rice_vendors),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0,
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tab5
+
+```
+
+#### Table 5: Country-level summary statistics
+
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Calculate number of organic and conventional vendors, median, IQR, min and max price
+tab5_country_summary_stats <- rice_prices_data %>%
+  group_by(country) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg_usd)),
+    median_org_rice = median(rice_price_org_kg_usd, na.rm = TRUE),
+    iqr_org_rice = IQR(rice_price_org_kg_usd, na.rm = TRUE),
+    min_org_rice = min(rice_price_org_kg_usd, na.rm = TRUE),
+    max_org_rice = max(rice_price_org_kg_usd, na.rm = TRUE),
+    median_conv_rice = median(rice_price_conv_kg_usd, na.rm = TRUE),
+    iqr_conv_rice = IQR(rice_price_conv_kg_usd, na.rm = TRUE),
+    min_conv_rice = min(rice_price_conv_kg_usd, na.rm = TRUE),
+    max_conv_rice = max(rice_price_conv_kg_usd, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+print(tab5_country_summary_stats)
+
+```
 
