@@ -443,7 +443,7 @@ print(p_values_kruskal_overall)
 
 
 ###### Country-level p-values
-```{r echo = FALSE, message = FALSE, warning = FALSE}
+```{r echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
 
 # Create a vector of country names
 country_names <- c("Brazil","India","UK")
@@ -472,7 +472,7 @@ print(p_values_kruskal_country_df)
 
 ###### City-level p-values
 
-```{r echo = FALSE, message = FALSE, warning = FALSE}
+```{r echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
 
 # Create a vector of city names
 city_names <- c("Rio de Janeiro","Sao Paolo","Sinop",
@@ -869,7 +869,7 @@ print(p_values_chi_overall)
 
 
 ###### Country-level p-values
-```{r echo = FALSE, message = FALSE, warning = FALSE}
+```{r echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
 
 # Create a vector of country names
 country_names <- c("Brazil","India","UK")
@@ -899,7 +899,7 @@ print(p_values_chi_country_df)
 
 ###### City-level p-values
 
-```{r echo = FALSE, message = FALSE, warning = FALSE}
+```{r echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
 
 # Create a vector of city names
 city_names <- c("Rio de Janeiro","Sao Paolo","Sinop",
@@ -934,7 +934,7 @@ print(p_values_chi_city_df)
 ```
 
 
-#### Summary statistics
+#### Table 2
 
 ##### For each neighbourhood within each city
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
@@ -1698,6 +1698,7 @@ tabs1_country
 ### Terminologies
 
 #### Table 6
+
 ##### Overall
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
@@ -2357,4 +2358,14 @@ tab6_categories_uk
 ```
 
 
+
+### Brands
+
+#### Table 7
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+
+
+```
 
