@@ -1214,7 +1214,7 @@ rice_prices_data <- read.xlsx("C:/Users/s1985751/Documents/GitHub/fea/rice_price
 
 ```
 
-#### Mann-Whitney U test
+#### Wilcoxon Rank-Sum Test / Mann-Whitney U test
 
 ##### Overall results
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
@@ -1432,4 +1432,93 @@ tab5_country_summary_stats <- rice_prices_data %>%
 print(tab5_country_summary_stats)
 
 ```
+
+
+
+### Hypothesis 2b. The price of organic rice will be significantly higher than the price of non-organic rice when sold at the same vendor location.
+
+#### Wilcoxon Signed Rank Test
+
+##### Overall results
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of rice prices for vendors selling both organic and conventional
+wsr_rice_prices_data_overall <- rice_prices_data %>%
+  select(rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
+  filter(rice_price_both == 1)
+
+# Overall Wilcoxon Signed Rank test
+wsr_overall_test <- wilcox.test(wsr_rice_prices_data_overall$rice_price_org_kg_usd,
+                            wsr_rice_prices_data_overall$rice_price_conv_kg_usd,
+                            alternative = "greater", paired = TRUE)
+
+wsr_overall_p_value_one_tailed <- wsr_overall_test$p.value / 2
+
+print(wsr_overall_test)
+cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_overall_p_value_one_tailed, "\n")
+
+```
+
+##### Country-level results: Brazil
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of rice prices for vendors selling both organic and conventional
+wsr_rice_prices_data_brazil <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
+  filter(rice_price_both == 1) %>%
+  filter(country == "Brazil")
+
+# Overall Wilcoxon Signed Rank test
+wsr_brazil_test <- wilcox.test(wsr_rice_prices_data_brazil$rice_price_org_kg_usd,
+                            wsr_rice_prices_data_brazil$rice_price_conv_kg_usd,
+                            alternative = "greater", paired = TRUE)
+
+wsr_brazil_p_value_one_tailed <- wsr_brazil_test$p.value / 2
+
+print(wsr_brazil_test)
+cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_brazil_p_value_one_tailed, "\n")
+
+```
+
+
+##### Country-level results: India
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of rice prices for vendors selling both organic and conventional
+wsr_rice_prices_data_india <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
+  filter(rice_price_both == 1) %>%
+  filter(country == "India")
+
+# Overall Wilcoxon Signed Rank test
+wsr_india_test <- wilcox.test(wsr_rice_prices_data_india$rice_price_org_kg_usd,
+                            wsr_rice_prices_data_india$rice_price_conv_kg_usd,
+                            alternative = "greater", paired = TRUE)
+
+wsr_india_p_value_one_tailed <- wsr_india_test$p.value / 2
+
+print(wsr_india_test)
+cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_india_p_value_one_tailed, "\n")
+```
+
+##### Country-level results: UK
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of rice prices for vendors selling both organic and conventional
+wsr_rice_prices_data_uk <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
+  filter(rice_price_both == 1) %>%
+  filter(country == "UK")
+
+# Overall Wilcoxon Signed Rank test
+wsr_uk_test <- wilcox.test(wsr_rice_prices_data_uk$rice_price_org_kg_usd,
+                            wsr_rice_prices_data_uk$rice_price_conv_kg_usd,
+                            alternative = "greater", paired = TRUE)
+
+wsr_uk_p_value_one_tailed <- wsr_uk_test$p.value / 2
+
+print(wsr_uk_test)
+cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_uk_p_value_one_tailed, "\n")
+```
+
 
