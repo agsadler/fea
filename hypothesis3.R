@@ -22,29 +22,32 @@ data_clean <- read.xlsx("C:/Users/s1985751/Documents/GitHub/fea/data_clean.xlsx"
 
 # TABLE 6
 
+# Note: If I want to summarise just the number of vendors using the term,
+# the code for summing should be >0
+
 # Overall totals
 
 tab6_overall <- data_clean %>%
   summarise(
-    total_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
-    term_organic_count = sum(vendor_term_organic_count > 0),
-    term_organic_perc = term_organic_count / total_org_vendors,
-    term_natural_count = sum(vendor_term_natural_count > 0),
-    term_natural_perc = term_natural_count / total_org_vendors,
-    term_chemfree_count = sum(vendor_term_chemfree_count > 0),
-    term_chemfree_perc = term_chemfree_count / total_org_vendors,
-    term_pestfree_count = sum(vendor_term_pestfree_count > 0),
-    term_pestfree_perc = term_pestfree_count / total_org_vendors,
-    term_bioprod_count = sum(vendor_term_bioprod_count > 0),
-    term_bioprod_perc = term_bioprod_count / total_org_vendors,
-    term_bio_count = sum(vendor_term_bio_count > 0),
-    term_bio_perc = term_bio_count / total_org_vendors,
-    term_eco_count = sum(vendor_term_eco_count > 0),
-    term_eco_perc = term_eco_count / total_org_vendors,
-    term_gmo_count = sum(vendor_term_gmo_count > 0),
-    term_gmo_perc = term_gmo_count / total_org_vendors,
-    term_dontknow_count = sum(vendor_term_dontknow_count > 0),
-    term_dontknow_perc = term_dontknow_count / total_org_vendors
+    total_org_products = sum(org_foods_count),
+    term_organic_count = sum(vendor_term_organic_count),
+    term_organic_perc = term_organic_count / total_org_products,
+    term_natural_count = sum(vendor_term_natural_count),
+    term_natural_perc = term_natural_count / total_org_products,
+    term_chemfree_count = sum(vendor_term_chemfree_count),
+    term_chemfree_perc = term_chemfree_count / total_org_products,
+    term_pestfree_count = sum(vendor_term_pestfree_count),
+    term_pestfree_perc = term_pestfree_count / total_org_products,
+    term_bioprod_count = sum(vendor_term_bioprod_count),
+    term_bioprod_perc = term_bioprod_count / total_org_products,
+    term_bio_count = sum(vendor_term_bio_count),
+    term_bio_perc = term_bio_count / total_org_products,
+    term_eco_count = sum(vendor_term_eco_count),
+    term_eco_perc = term_eco_count / total_org_products,
+    term_gmo_count = sum(vendor_term_gmo_count),
+    term_gmo_perc = term_gmo_count / total_org_products,
+    term_dontknow_count = sum(vendor_term_dontknow_count),
+    term_dontknow_perc = term_dontknow_count / total_org_products
   )
 
 # Country-level totals
@@ -52,25 +55,25 @@ tab6_overall <- data_clean %>%
 tab6_country <- data_clean %>%
   group_by(country) %>%
   summarise(
-    total_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
-    term_organic_count = sum(vendor_term_organic_count > 0),
-    term_organic_perc = term_organic_count / total_org_vendors,
-    term_natural_count = sum(vendor_term_natural_count > 0),
-    term_natural_perc = term_natural_count / total_org_vendors,
-    term_chemfree_count = sum(vendor_term_chemfree_count > 0),
-    term_chemfree_perc = term_chemfree_count / total_org_vendors,
-    term_pestfree_count = sum(vendor_term_pestfree_count > 0),
-    term_pestfree_perc = term_pestfree_count / total_org_vendors,
-    term_bioprod_count = sum(vendor_term_bioprod_count > 0),
-    term_bioprod_perc = term_bioprod_count / total_org_vendors,
-    term_bio_count = sum(vendor_term_bio_count > 0),
-    term_bio_perc = term_bio_count / total_org_vendors,
-    term_eco_count = sum(vendor_term_eco_count > 0),
-    term_eco_perc = term_eco_count / total_org_vendors,
-    term_gmo_count = sum(vendor_term_gmo_count > 0),
-    term_gmo_perc = term_gmo_count / total_org_vendors,
-    term_dontknow_count = sum(vendor_term_dontknow_count > 0),
-    term_dontknow_perc = term_dontknow_count / total_org_vendors
+    total_org_products = sum(org_foods_count),
+    term_organic_count = sum(vendor_term_organic_count),
+    term_organic_perc = term_organic_count / total_org_products,
+    term_natural_count = sum(vendor_term_natural_count),
+    term_natural_perc = term_natural_count / total_org_products,
+    term_chemfree_count = sum(vendor_term_chemfree_count),
+    term_chemfree_perc = term_chemfree_count / total_org_products,
+    term_pestfree_count = sum(vendor_term_pestfree_count),
+    term_pestfree_perc = term_pestfree_count / total_org_products,
+    term_bioprod_count = sum(vendor_term_bioprod_count),
+    term_bioprod_perc = term_bioprod_count / total_org_products,
+    term_bio_count = sum(vendor_term_bio_count),
+    term_bio_perc = term_bio_count / total_org_products,
+    term_eco_count = sum(vendor_term_eco_count),
+    term_eco_perc = term_eco_count / total_org_products,
+    term_gmo_count = sum(vendor_term_gmo_count),
+    term_gmo_perc = term_gmo_count / total_org_products,
+    term_dontknow_count = sum(vendor_term_dontknow_count),
+    term_dontknow_perc = term_dontknow_count / total_org_products
   )
 
 # Create gt table for overall and country level totals
@@ -80,7 +83,7 @@ tab6_totals <- tab6_country %>%
   gt() %>%
   cols_label(
     country = "Country",
-    total_org_vendors = "Total organic vendors",
+    total_org_products = "Total organic products",
     term_organic_count = "Organic, n(%)",
     term_organic_perc = " ",
     term_natural_count = "Natural, n(%)",
@@ -143,7 +146,7 @@ tab6_totals <- tab6_country %>%
     decimals = 0
   ) %>%
   grand_summary_rows(
-    columns = vars(total_org_vendors, term_organic_count, term_natural_count, term_chemfree_count,
+    columns = vars(total_org_products, term_organic_count, term_natural_count, term_chemfree_count,
                    term_pestfree_count, term_bioprod_count, term_bio_count,
                    term_eco_count, term_gmo_count, term_dontknow_count),
     fns = list(total = ~sum(., na.rm = TRUE)),
@@ -154,6 +157,9 @@ tab6_totals <- tab6_country %>%
 
 # Display the table
 tab6_totals
+
+
+
 
 
 count_products <- data_clean %>%
@@ -176,6 +182,154 @@ count_products <- data_clean %>%
 
 product_terms_summary <- data_clean %>%
   summarise(
-    tom_vendor_count = sum(tom_sell == "Yes", na.rm = TRUE),
-    tom_org_count
+    tom_org_count = sum(tom_org == "Yes", na.rm = TRUE),
+    tom_term_organic_count = sum(tom_org_terms_Organic == 1, na.rm = TRUE),
+    tom_term_organic_perc = tom_term_organic_count / tom_org_count,
+    tom_term_natural_count = sum(tom_org_terms_Natural == 1, na.rm = TRUE),
+    tom_term_natural_perc = tom_term_natural_count / tom_org_count,
+    tom_term_chemfree_count = sum('tom_org_terms_Chemical-free' == 1, na.rm = TRUE),
+    tom_term_chemfree_perc = tom_term_chemfree_count / tom_org_count,
+    tom_term_pestfree_count = sum('tom_org_terms_Pesticide-free' == 1, na.rm = TRUE),
+    tom_term_pestfree_perc = tom_term_pestfree_count / tom_org_count,
+    tom_term_bioprod_count = sum(tom_org_terms_Bioproducts == 1, na.rm = TRUE),
+    tom_term_bioprod_perc = tom_term_bioprod_count / tom_org_count,
+    tom_term_bio_count = sum(tom_org_terms_Bio == 1, na.rm = TRUE),
+    tom_term_bio_perc = tom_term_bio_count / tom_org_count,
+    tom_term_eco_count = sum(tom_org_terms_Eco == 1, na.rm = TRUE),
+    tom_term_eco_perc = tom_term_eco_count / tom_org_count,
+    tom_term_gmo_count = sum('tom_org_terms_GMO-free' == 1, na.rm = TRUE),
+    tom_term_gmo_perc = tom_term_gmo_count / tom_org_count,
+    tom_term_dontknow_count = sum("tom_org_terms_Don't know" == 1, na.rm = TRUE),
+    tom_term_dontknow_perc = tom_term_dontknow_count / tom_org_count
   )
+
+
+### LOOP CODE
+
+
+# Vector of product abbreviations
+products <- c("tom", "leaf", "ban", "man", "fj", "milk", "cof", "tea", "mill", "chic", "daal", "wht", "rice", "nut")
+
+# Define a function to summarize data for a given product
+summarize_product <- function(product) {
+  data_clean %>%
+    summarise(
+      org_count = sum(get(paste0(product, "_org")) == "Yes", na.rm = TRUE),
+      term_organic_count = sum(get(paste0(product, "_org_terms_Organic")) == 1, na.rm = TRUE),
+      term_organic_perc = term_organic_count / org_count,
+      term_natural_count = sum(get(paste0(product, "_org_terms_Natural")) == 1, na.rm = TRUE),
+      term_natural_perc = term_natural_count / org_count,
+      term_chemfree_count = sum(get(paste0(product, "_org_terms_Chemical-free")) == 1, na.rm = TRUE),
+      term_chemfree_perc = term_chemfree_count / org_count,
+      term_pestfree_count = sum(get(paste0(product, "_org_terms_Pesticide-free")) == 1, na.rm = TRUE),
+      term_pestfree_perc = term_pestfree_count / org_count,
+      term_bioprod_count = sum(get(paste0(product, "_org_terms_Bioproducts")) == 1, na.rm = TRUE),
+      term_bioprod_perc = term_bioprod_count / org_count,
+      term_bio_count = sum(get(paste0(product, "_org_terms_Bio")) == 1, na.rm = TRUE),
+      term_bio_perc = term_bio_count / org_count,
+      term_eco_count = sum(get(paste0(product, "_org_terms_Eco")) == 1, na.rm = TRUE),
+      term_eco_perc = term_eco_count / org_count,
+      term_gmo_count = sum(get(paste0(product, "_org_terms_GMO-free")) == 1, na.rm = TRUE),
+      term_gmo_perc = term_gmo_count / org_count,
+      #term_dontknow_count = sum(get(paste0(product, "_org_terms_Don't know")) == 1, na.rm = TRUE),
+      #term_dontknow_perc = term_dontknow_count / org_count
+    ) %>%
+    mutate(
+      product = product,
+      category = case_when(product %in% c("fj", "milk", "cof", "tea") ~ "beverages",
+                           product %in% c("tom", "leaf", "ban", "man") ~ "fresh produce",
+                           TRUE ~ "Other")
+      ) %>% 
+    select(category, product, everything())
+}
+
+# Apply the function to each product and combine the results
+product_summary_list <- lapply(products, summarize_product)
+tab6_product_summary <- bind_rows(product_summary_list)
+
+# Create category-level data frame
+
+
+
+
+# Create gt table - overall
+
+tab6_categories_overall <- combined_summary %>%
+  gt(rowname_col = "product", groupname_col = "category") %>%
+  cols_label(
+    country = "Country",
+    total_org_products = "Total organic products",
+    term_organic_count = "Organic, n(%)",
+    term_organic_perc = " ",
+    term_natural_count = "Natural, n(%)",
+    term_natural_perc = " ",
+    term_chemfree_count = "Chemical-free, n(%)",
+    term_chemfree_perc = " ",
+    term_pestfree_count = "Pesticide-free, n(%)",
+    term_pestfree_perc = " ",
+    term_bioprod_count = "Bioproduct, n(%)",
+    term_bioprod_perc = " ",
+    term_bio_count = "Bio, n(%)",
+    term_bio_perc = " ",
+    term_eco_count = "Eco, n(%)",
+    term_eco_perc = " ",
+    term_gmo_count = "GMO-free, n(%)",
+    term_gmo_perc = " ",
+    term_dontknow_count = "Don't know, n(%)",
+    term_dontknow_perc = " ",
+  ) %>%
+  cols_merge(
+    columns = c("term_organic_count", "term_organic_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_natural_count", "term_natural_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_chemfree_count", "term_chemfree_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_pestfree_count", "term_pestfree_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_bioprod_count", "term_bioprod_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_bio_count", "term_bio_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_eco_count", "term_eco_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_gmo_count", "term_gmo_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_dontknow_count", "term_dontknow_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  fmt_percent(
+    columns = vars(term_organic_perc, term_natural_perc, term_chemfree_perc,
+                   term_pestfree_perc, term_bioprod_perc, term_bio_perc,
+                   term_eco_perc, term_gmo_perc, term_dontknow_perc),
+    decimals = 0
+  ) %>%
+  grand_summary_rows(
+    columns = vars(total_org_products, term_organic_count, term_natural_count, term_chemfree_count,
+                   term_pestfree_count, term_bioprod_count, term_bio_count,
+                   term_eco_count, term_gmo_count, term_dontknow_count),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0,
+  ) %>%
+  sub_missing() 
+
+# Display the table
+tab6_totals
+
