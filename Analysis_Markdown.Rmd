@@ -947,32 +947,16 @@ data_clean <- data_clean %>%
   mutate(circle = factor(circle, levels = circle_order))
 
 # Median and IQR number of organic sentinel foods
-tab2_median_iqr <- data_clean %>%
+tab2_neighbourhood_data <- data_clean %>%
   group_by(country, city, circle) %>%
   summarise(
+    vendors = n(),
+    count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    org_vendor_perc = count_org_vendors / vendors,
     median_org_foods_count = median(org_foods_count, na.rm = TRUE),
     iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
   ) %>%
   ungroup()
-
-# Count and proportion of vendors with at least one organic sentinal food
-
-  # Count total vendors and organic vendors per neighbourhood
-  tab2_count_org <- data_clean %>%
-    group_by(country, city, circle) %>%
-    summarise(
-      vendors = n(),
-      count_org_vendors = sum(org_vendor == 1, na.rm = TRUE)
-    ) %>%
-    ungroup() %>%
-    mutate(org_vendor_perc = count_org_vendors / vendors)
-
-# Merge both datasets
-tab2_neighbourhood_data <- tab2_median_iqr %>%
-  left_join(tab2_count_org, by = c("country", "city", "circle")) %>%
-  select(country,city,circle,vendors,count_org_vendors,org_vendor_perc,
-         median_org_foods_count,iqr_org_foods_count)
-
 
 # Create the gt table
 tab2_neighbourhood <- tab2_neighbourhood_data %>%
@@ -1012,144 +996,272 @@ tab2_neighbourhood <- tab2_neighbourhood_data %>%
 # Display the table
 tab2_neighbourhood
 
-# Note: I can't seem to get it to also have the percentage columns
+# Note: I can't seem to get it to also have the percentage columns in the summary
 # Note: Also don't know how to do a grand total - keep getting errors
 
 # Export to table_outputs workbook
-
-addWorksheet(table_outputs, "Table 2")
-writeData(table_outputs, sheet = "Table 2", x = tab2_neighbourhood)
+addWorksheet(table_outputs, "Table 2 - neighbourhood")
+writeData(table_outputs, sheet = "Table 2 - neighbourhood", x = tab2_neighbourhood)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
-
-
 
 ```
 
 ##### For each city within each country
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-# Median and IQR for each city within each country
-tab2_city_median_iqr <- data_clean %>%
+# N, %, median and IQR - city level
+tab2_city_data <- data_clean %>%
   group_by(country, city) %>%
   summarize(
+    vendors = n(),
+    count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    org_vendor_perc = count_org_vendors / vendors,
     median_org_foods_count = median(org_foods_count, na.rm = TRUE),
     iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
-# Count and proportion of vendors with at least one organic sentinal food
-
-  # Count total vendors and organic vendors per city
-  tab2_city_count_org <- data_clean %>%
-    group_by(country, city) %>%
-    summarise(
-      vendors = n(),
-      count_org_vendors = sum(org_vendor == 1, na.rm = TRUE)
-    ) %>%
-    ungroup() %>%
-    mutate(org_vendor_perc = count_org_vendors / vendors)
-
-# Merge both datasets
-tab2_city_data <- tab2_city_median_iqr %>%
-  left_join(tab2_city_count_org, by = c("country", "city")) %>%
-  select(country,city,vendors,count_org_vendors,org_vendor_perc,
-         median_org_foods_count,iqr_org_foods_count)
+print(tab2_city_data)
 
 
+# Create the gt table
+tab2_city <- tab2_city_data %>%
+  gt(rowname_col = "city", groupname_col = c("country")) %>%
+  cols_label(
+    country = "Country",
+    city = "City",
+    vendors = "Total vendors",
+    count_org_vendors = "Organic vendors, n(%)",
+    org_vendor_perc = " ",
+    median_org_foods_count = "Organic sentinel foods, median (IQR)",
+    iqr_org_foods_count = " "
+  ) %>%
+  fmt_percent(
+    columns = vars(org_vendor_perc),
+    decimals = 0
+  ) %>%
+  cols_merge(
+    columns = c("count_org_vendors", "org_vendor_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("median_org_foods_count", "iqr_org_foods_count"),
+    pattern = "{1} ({2})"
+  ) %>%
+  summary_rows(
+    groups = everything(),
+    columns = vars(vendors, count_org_vendors, org_vendor_perc,
+                   median_org_foods_count, iqr_org_foods_count),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tab2_city
 
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 2 - city")
+writeData(table_outputs, sheet = "Table 2 - city", x = tab2_city)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 
 ##### For each country
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-# Median and IQR for each country
-country_stats <- data_clean %>%
+# N, %, median and IQR - country level
+tab2_country_data <- data_clean %>%
   group_by(country) %>%
   summarize(
+    vendors = n(),
+    count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    org_vendor_perc = count_org_vendors / vendors,
     median_org_foods_count = median(org_foods_count, na.rm = TRUE),
     iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
-print(country_stats)
+# Print output
+print(tab2_country_data)
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 2 - country")
+writeData(table_outputs, sheet = "Table 2 - country", x = tab2_country_data)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
 ```
 
 ##### Overall
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-# Calculate the overall median and IQR
-overall_median <- median(data_clean$org_foods_count, na.rm = TRUE)
-overall_iqr <- IQR(data_clean$org_foods_count, na.rm = TRUE)
+# N, %, median and IQR - country level
+tab3_overall <- data_clean %>%
+  summarize(
+    vendors = n(),
+    count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    org_vendor_perc = count_org_vendors / vendors,
+    median_org_foods_count = median(org_foods_count, na.rm = TRUE),
+    iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
 
-# Display the results
-overall_median
-overall_iqr
+# Print
+print(tab3_overall)
+
 ```
 
 
 ### Exploratory Analysis: Hypothesis 1b. The count and proportion of vendors selling multiple organic options for at least one sentinel food will be highest in the United Kingdom, in larger cities within a given country, and in higher-income neighbourhoods within a given city.
 
 
-#### Median and interquartile range
+#### Table 3
 
 ##### For each neighbourhood within each city
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-# Median and IQR for each neighborhood within each city
-neighborhood_stats2 <- data_clean %>%
+# N, %, median and IQR - neighbourhood level
+tab3_neighbourhood_data <- data_clean %>%
   group_by(country, city, circle) %>%
   summarize(
+    organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    n_multiple_org_binary = sum(multiple_org_binary == 1, na.rm = TRUE),
+    perc_multiple_org_binary = n_multiple_org_binary / organic_vendors,
     median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
     iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
-print(neighborhood_stats2)
+# Create the gt table
+tab3_neighbourhood <- tab3_neighbourhood_data %>%
+  gt(rowname_col = "circle", groupname_col = c("country","city")) %>%
+  cols_label(
+    country = "Country",
+    city = "City",
+    circle = "Neighbourhood",
+    n_multiple_org_binary = "Organic vendors with multiple options (>1 product), n(%)",
+    perc_multiple_org_binary = " ",
+    median_multiple_org_count = "Foods with multiple options, median (IQR)",
+    iqr_multiple_org_count = " "
+  ) %>%
+  fmt_percent(
+    columns = vars(perc_multiple_org_binary),
+    decimals = 0
+  ) %>%
+  cols_merge(
+    columns = c("n_multiple_org_binary", "perc_multiple_org_binary"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("median_multiple_org_count", "iqr_multiple_org_count"),
+    pattern = "{1} ({2})"
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tab3_neighbourhood
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 3 - neighbourhood")
+writeData(table_outputs, sheet = "Table 3 - neighbourhood", x = tab3_neighbourhood_data)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
 ```
 
 ##### For each city within each country
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-# Median and IQR for each city within each country
-city_stats2 <- data_clean %>%
+# N, %, median and IQR - city level
+tab3_city_data <- data_clean %>%
   group_by(country, city) %>%
   summarize(
+    organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    n_multiple_org_binary = sum(multiple_org_binary == 1, na.rm = TRUE),
+    perc_multiple_org_binary = n_multiple_org_binary / organic_vendors,
     median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
     iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
-print(city_stats2)
+# Create the gt table
+tab3_city <- tab3_city_data %>%
+  gt(rowname_col = "city", groupname_col = "country") %>%
+  cols_label(
+    country = "Country",
+    city = "City",
+    n_multiple_org_binary = "Organic vendors with multiple options (>1 product), n(%)",
+    perc_multiple_org_binary = " ",
+    median_multiple_org_count = "Foods with multiple options, median (IQR)",
+    iqr_multiple_org_count = " "
+  ) %>%
+  fmt_percent(
+    columns = vars(perc_multiple_org_binary),
+    decimals = 0
+  ) %>%
+  cols_merge(
+    columns = c("n_multiple_org_binary", "perc_multiple_org_binary"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("median_multiple_org_count", "iqr_multiple_org_count"),
+    pattern = "{1} ({2})"
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tab3_city
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 3 - city")
+writeData(table_outputs, sheet = "Table 3 - city", x = tab3_city_data)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
 
 ##### For each country
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-# Median and IQR for each country
-country_stats2 <- data_clean %>%
+# N, %, median and IQR - country level
+tab3_country_data <- data_clean %>%
   group_by(country) %>%
   summarize(
+    organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    n_multiple_org_binary = sum(multiple_org_binary == 1, na.rm = TRUE),
+    perc_multiple_org_binary = n_multiple_org_binary / organic_vendors,
     median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
     iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
-print(country_stats2)
+print(tab3_country_data)
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 3 - country")
+writeData(table_outputs, sheet = "Table 3 - country", x = tab3_country_data)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
 
 ##### Overall
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-# Calculate the overall median and IQR
-overall_median2 <- median(data_clean$multiple_org_count, na.rm = TRUE)
-overall_iqr2 <- IQR(data_clean$multiple_org_count, na.rm = TRUE)
+# N, %, median and IQR - overall
+tab3_overall_data <- data_clean %>%
+  summarize(
+    organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    n_multiple_org_binary = sum(multiple_org_binary == 1, na.rm = TRUE),
+    perc_multiple_org_binary = n_multiple_org_binary / organic_vendors,
+    median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
+    iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
 
-# Display the results
-overall_median2
-overall_iqr2
+print(tab3_overall_data)
+
 ```
+
 
 ### Exploratory Analysis: Organic versus non-organic vendor characteristics
 
-#### Country-level
+#### Table 4
+
+##### Country-level
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 # Summarize the data grouped by `org_vendor` and `country`
-country_summary_stats <- data_clean %>%
+tab4_country_data <- data_clean %>%
   group_by(country, org_vendor) %>%
   summarize(
     median_vendor_cashiers = median(vendor_cashiers, na.rm = TRUE),
@@ -1170,7 +1282,53 @@ country_summary_stats <- data_clean %>%
   ungroup()
 
 # Display the country-level results
-print(country_summary_stats)
+print(tab4_country_data)
+
+# Relabel organic vendor status
+org_vendor
+
+
+# Create the gt table
+tab4_country <- tab4_country_data %>%
+  gt(rowname_col = "org_vendor", groupname_col = c("country")) %>%
+  cols_label(
+    country = "Country",
+    org_vendor = "Organic status",
+    
+    median_vendor_cashiers = "Cashiers, median(IQR), min-max",
+    iqr_vendor_cashiers = " ",
+    min_vendor_cashiers = " ",
+    max_vendor_cashiers = " ",
+    
+    median_days_open_count = "Days open, median(IQR), min-max",
+    iqr_days_open_count = " ",
+    min_days_open_count = " ",
+    max_days_open_count = " ",
+    
+    median_foods_count = "Sentinel products sold, median(IQR), min-max",
+    iqr_foods_count = " ",
+    min_foods_count = " ",
+    max_foods_count = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_vendor_cashiers", "iqr_vendor_cashiers", 
+                "min_vendor_cashiers", "max_vendor_cashiers"),
+    pattern = "{1}({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_days_open_count", "iqr_days_open_count", 
+                "min_days_open_count", "max_days_open_count"),
+    pattern = "{1}({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_foods_count", "iqr_foods_count", 
+                "min_foods_count", "max_foods_count"),
+    pattern = "{1}({2}), {3}-{4}"
+  ) %>%
+  sub_missing() 
+
+print(tab4_country)
+
 ```
 
 #### Overall
@@ -2368,4 +2526,19 @@ tab6_categories_uk
 
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
