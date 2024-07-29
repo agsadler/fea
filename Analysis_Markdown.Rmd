@@ -2053,9 +2053,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 
 ## 3. What are the marketing characteristics of organic food in urban food environments? How does this vary across different geographic and socioeconomic contexts? 
 
-### Terminologies
-
-#### Table 6
+### Terminologies - Table 6
 
 ##### Overall
 
@@ -2222,6 +2220,10 @@ tab6_categories_overall <- tab6_category_summary %>%
 # Display the table
 tab6_categories_overall
 
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 6 - overall")
+writeData(table_outputs, sheet = "Table 6 - overall", x = tab6_categories_overall)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 
@@ -2385,6 +2387,10 @@ tab6_categories_brazil <- tab6_category_summary_brazil %>%
 # Display the table
 tab6_categories_brazil
 
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 6 - Brazil")
+writeData(table_outputs, sheet = "Table 6 - Brazil", x = tab6_categories_brazil)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 
@@ -2548,6 +2554,10 @@ tab6_categories_india <- tab6_category_summary_india %>%
 # Display the table
 tab6_categories_india
 
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 6 - India")
+writeData(table_outputs, sheet = "Table 6 - India", x = tab6_categories_india)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 
@@ -2712,14 +2722,16 @@ tab6_categories_uk <- tab6_category_summary_uk %>%
 # Display the table
 tab6_categories_uk
 
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 6 - UK")
+writeData(table_outputs, sheet = "Table 6 - UK", x = tab6_categories_uk)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 
 
 
-### Brands
-
-#### Table 7
+### Brands - Table 7
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
