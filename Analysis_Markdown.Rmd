@@ -1336,7 +1336,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 
 ```
 
-#### Overall
+##### Overall
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 # Summarize the data for overall statistics grouped by `org_vendor`
@@ -1556,12 +1556,14 @@ cat("Overall Mann-Whitney U test p-value (one-tailed):", uk_p_value_one_tailed, 
 
 
 
-#### Table 5: City-level summary statistics
+#### Table 5
+
+##### City-level
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Calculate number of organic and conventional vendors, median, IQR, min and max price
-tab5_summary_stats <- rice_prices_data %>%
+tab5_city_data <- rice_prices_data %>%
   group_by(country, city) %>%
   summarise(
     count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
@@ -1578,7 +1580,7 @@ tab5_summary_stats <- rice_prices_data %>%
   ungroup()
 
 # Create the gt table
-tab5 <- tab5_summary_stats %>%
+tab5_city <- tab5_city_data %>%
   gt(rowname_col = "city", groupname_col = c("country")) %>%
   cols_label(
     country = "Country",
@@ -1617,17 +1619,22 @@ tab5 <- tab5_summary_stats %>%
   sub_missing() 
   
 # Display the table
-tab5
+tab5_city
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 5 - city")
+writeData(table_outputs, sheet = "Table 5 - city", x = tab5_city)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 
-#### Table 5: Country-level summary statistics
+##### Country-level
 
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Calculate number of organic and conventional vendors, median, IQR, min and max price
-tab5_country_summary_stats <- rice_prices_data %>%
+tab5_country_data <- rice_prices_data %>%
   group_by(country) %>%
   summarise(
     count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
@@ -1643,7 +1650,7 @@ tab5_country_summary_stats <- rice_prices_data %>%
   ) %>%
   ungroup()
 
-tab5_country <- tab5_country_summary_stats %>%
+tab5_country <- tab5_country_data %>%
   gt() %>%
   cols_label(
     country = "Country",
@@ -1682,9 +1689,73 @@ tab5_country <- tab5_country_summary_stats %>%
 # Display the table
 tab5_country
 
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 5 - country")
+writeData(table_outputs, sheet = "Table 5 - country", x = tab5_country)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
 ```
 
+##### Overall
 
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Calculate number of organic and conventional vendors, median, IQR, min and max price
+tab5_overall_data <- rice_prices_data %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg_usd)),
+    median_org_rice = median(rice_price_org_kg_usd, na.rm = TRUE),
+    iqr_org_rice = IQR(rice_price_org_kg_usd, na.rm = TRUE),
+    min_org_rice = min(rice_price_org_kg_usd, na.rm = TRUE),
+    max_org_rice = max(rice_price_org_kg_usd, na.rm = TRUE),
+    median_conv_rice = median(rice_price_conv_kg_usd, na.rm = TRUE),
+    iqr_conv_rice = IQR(rice_price_conv_kg_usd, na.rm = TRUE),
+    min_conv_rice = min(rice_price_conv_kg_usd, na.rm = TRUE),
+    max_conv_rice = max(rice_price_conv_kg_usd, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+# Create gt table
+tab5_overall <- tab5_overall_data %>%
+  gt() %>%
+  cols_label(
+    count_org_rice_vendors = "Organic sample size (n)",
+    count_conv_rice_vendors = "Conventional sample size (n)",
+    median_org_rice = "Organic median (IQR), min-max (US$)",
+    iqr_org_rice = " ",
+    min_org_rice = " ",
+    max_org_rice = " ",
+    median_conv_rice = "Conventional median (IQR), min-max (US$)",
+    iqr_conv_rice = " ",
+    min_conv_rice = " ",
+    max_conv_rice = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_org_rice", "iqr_org_rice", "min_org_rice", "max_org_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_conv_rice", "iqr_conv_rice", "min_conv_rice", "max_conv_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+  fmt_number(
+    columns = vars(median_org_rice, iqr_org_rice, min_org_rice, max_org_rice,
+                   median_conv_rice, iqr_conv_rice, min_conv_rice, max_conv_rice),
+    decimals = 2
+  ) %>%
+  sub_missing() 
+
+# Display the table
+tab5_overall
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 5 - overall")
+writeData(table_outputs, sheet = "Table 5 - overall", x = tab5_overall)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
 
 ### Hypothesis 2b. The price of organic rice will be significantly higher than the price of non-organic rice when sold at the same vendor location.
 
@@ -1773,13 +1844,15 @@ cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_uk_p_value_on
 ```
 
 
-#### Table S1: City-level summary statistics
+#### Table S1
+
+##### City-level
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Calculate number of organic and conventional vendors, median, IQR, min and max price
 # Filtered on vendors with both organic and conventional rice
-tabs1_summary_stats <- rice_prices_data %>%
+tabs1_city_data <- rice_prices_data %>%
   filter(rice_price_both == 1) %>%
   group_by(country, city) %>%
   summarise(
@@ -1797,7 +1870,7 @@ tabs1_summary_stats <- rice_prices_data %>%
   ungroup()
 
 # Create the gt table
-tabs1 <- tabs1_summary_stats %>%
+tabs1_city <- tabs1_city_data %>%
   gt(rowname_col = "city", groupname_col = c("country")) %>%
   cols_label(
     country = "Country",
@@ -1836,18 +1909,22 @@ tabs1 <- tabs1_summary_stats %>%
   sub_missing() 
   
 # Display the table
-tabs1
+tabs1_city
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table S1 - city")
+writeData(table_outputs, sheet = "Table S1 - city", x = tabs1_city)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 
-#### Table S1: Country-level summary statistics
-
+##### Country-level
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Calculate number of organic and conventional vendors, median, IQR, min and max price
 # Filtered on vendors with both organic and conventional rice
-tabs1_country_summary_stats <- rice_prices_data %>%
+tabs1_country_data <- rice_prices_data %>%
   filter(rice_price_both == 1) %>%
   group_by(country) %>%
   summarise(
@@ -1864,7 +1941,7 @@ tabs1_country_summary_stats <- rice_prices_data %>%
   ) %>%
   ungroup()
 
-tabs1_country <- tabs1_country_summary_stats %>%
+tabs1_country <- tabs1_country_data %>%
   gt() %>%
   cols_label(
     country = "Country",
@@ -1903,9 +1980,76 @@ tabs1_country <- tabs1_country_summary_stats %>%
 # Display the table
 tabs1_country
 
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table S1 - country")
+writeData(table_outputs, sheet = "Table S1 - country", x = tabs1_country)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+
 ```
 
 
+##### Overall
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Calculate number of organic and conventional vendors, median, IQR, min and max price
+# Filtered on vendors with both organic and conventional rice
+tabs1_overall_data <- rice_prices_data %>%
+  filter(rice_price_both == 1) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg_usd)),
+    median_org_rice = median(rice_price_org_kg_usd, na.rm = TRUE),
+    iqr_org_rice = IQR(rice_price_org_kg_usd, na.rm = TRUE),
+    min_org_rice = min(rice_price_org_kg_usd, na.rm = TRUE),
+    max_org_rice = max(rice_price_org_kg_usd, na.rm = TRUE),
+    median_conv_rice = median(rice_price_conv_kg_usd, na.rm = TRUE),
+    iqr_conv_rice = IQR(rice_price_conv_kg_usd, na.rm = TRUE),
+    min_conv_rice = min(rice_price_conv_kg_usd, na.rm = TRUE),
+    max_conv_rice = max(rice_price_conv_kg_usd, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+tabs1_overall <- tabs1_overall_data %>%
+  gt() %>%
+  cols_label(
+    count_org_rice_vendors = "Organic sample size (n)",
+    count_conv_rice_vendors = "Conventional sample size (n)",
+    median_org_rice = "Organic median (IQR), min-max (US$)",
+    iqr_org_rice = " ",
+    min_org_rice = " ",
+    max_org_rice = " ",
+    median_conv_rice = "Conventional median (IQR), min-max (US$)",
+    iqr_conv_rice = " ",
+    min_conv_rice = " ",
+    max_conv_rice = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_org_rice", "iqr_org_rice", "min_org_rice", "max_org_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_conv_rice", "iqr_conv_rice", "min_conv_rice", "max_conv_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+  fmt_number(
+    columns = vars(median_org_rice, iqr_org_rice, min_org_rice, max_org_rice,
+                   median_conv_rice, iqr_conv_rice, min_conv_rice, max_conv_rice),
+    decimals = 2
+  ) %>%
+  sub_missing() 
+
+# Display the table
+tabs1_overall
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table S1 - overall")
+writeData(table_outputs, sheet = "Table S1 - overall", x = tabs1_overall)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+
+```
 
 ## 3. What are the marketing characteristics of organic food in urban food environments? How does this vary across different geographic and socioeconomic contexts? 
 
