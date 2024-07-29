@@ -1285,8 +1285,8 @@ tab4_country_data <- data_clean %>%
 print(tab4_country_data)
 
 # Relabel organic vendor status
-org_vendor
-
+tab4_country_data <- tab4_country_data %>%
+  mutate(org_vendor = recode(org_vendor, '1' = 'Organic','0' = 'Non-organic'))
 
 # Create the gt table
 tab4_country <- tab4_country_data %>%
@@ -1329,13 +1329,18 @@ tab4_country <- tab4_country_data %>%
 
 print(tab4_country)
 
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 4 - country")
+writeData(table_outputs, sheet = "Table 4 - country", x = tab4_country)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
 ```
 
 #### Overall
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 # Summarize the data for overall statistics grouped by `org_vendor`
-overall_summary_stats <- data_clean %>%
+tab4_overall_data <- data_clean %>%
   group_by(org_vendor) %>%
   summarize(
     median_vendor_cashiers = median(vendor_cashiers, na.rm = TRUE),
@@ -1356,7 +1361,58 @@ overall_summary_stats <- data_clean %>%
   ungroup()
 
 # Display the overall results
-print(overall_summary_stats)
+print(tab4_overall_data)
+
+# Relabel organic vendor status
+tab4_overall_data <- tab4_overall_data %>%
+  mutate(org_vendor = recode(org_vendor, '1' = 'Organic','0' = 'Non-organic'))
+
+
+# Create the gt table
+tab4_overall <- tab4_overall_data %>%
+  gt() %>%
+  cols_label(
+    org_vendor = "Organic status",
+    
+    median_vendor_cashiers = "Cashiers, median(IQR), min-max",
+    iqr_vendor_cashiers = " ",
+    min_vendor_cashiers = " ",
+    max_vendor_cashiers = " ",
+    
+    median_days_open_count = "Days open, median(IQR), min-max",
+    iqr_days_open_count = " ",
+    min_days_open_count = " ",
+    max_days_open_count = " ",
+    
+    median_foods_count = "Sentinel products sold, median(IQR), min-max",
+    iqr_foods_count = " ",
+    min_foods_count = " ",
+    max_foods_count = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_vendor_cashiers", "iqr_vendor_cashiers", 
+                "min_vendor_cashiers", "max_vendor_cashiers"),
+    pattern = "{1}({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_days_open_count", "iqr_days_open_count", 
+                "min_days_open_count", "max_days_open_count"),
+    pattern = "{1}({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_foods_count", "iqr_foods_count", 
+                "min_foods_count", "max_foods_count"),
+    pattern = "{1}({2}), {3}-{4}"
+  ) %>%
+  sub_missing() 
+
+print(tab4_overall)
+
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 4 - overall")
+writeData(table_outputs, sheet = "Table 4 - overall", x = tab4_overall)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
 
 
