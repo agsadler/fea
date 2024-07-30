@@ -1094,7 +1094,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ##### Overall
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 # N, %, median and IQR - country level
-tab3_overall <- data_clean %>%
+tab2_overall <- data_clean %>%
   summarize(
     vendors = n(),
     count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
@@ -1105,7 +1105,12 @@ tab3_overall <- data_clean %>%
   ungroup()
 
 # Print
-print(tab3_overall)
+print(tab2_overall)
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 2 - overall")
+writeData(table_outputs, sheet = "Table 2 - overall", x = tab2_overall)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 
@@ -1160,7 +1165,7 @@ tab3_neighbourhood
 
 # Export to table_outputs workbook
 addWorksheet(table_outputs, "Table 3 - neighbourhood")
-writeData(table_outputs, sheet = "Table 3 - neighbourhood", x = tab3_neighbourhood_data)
+writeData(table_outputs, sheet = "Table 3 - neighbourhood", x = tab3_neighbourhood)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -1209,7 +1214,7 @@ tab3_city
 
 # Export to table_outputs workbook
 addWorksheet(table_outputs, "Table 3 - city")
-writeData(table_outputs, sheet = "Table 3 - city", x = tab3_city_data)
+writeData(table_outputs, sheet = "Table 3 - city", x = tab3_city)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
 
@@ -1249,6 +1254,11 @@ tab3_overall_data <- data_clean %>%
   ungroup()
 
 print(tab3_overall_data)
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 3 - overall")
+writeData(table_outputs, sheet = "Table 3 - overall", x = tab3_overall_data)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 

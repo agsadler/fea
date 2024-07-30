@@ -2,9 +2,9 @@
 # Data Cleaning Script
 # Alexandra Sadler - 19.7.24
 
+
+
 # 1. SET UP WORKSPACE----
-
-
 
 # Load necessary libraries
 
@@ -47,7 +47,7 @@ column_mapping_q <- column_mapping_q %>% filter(!is.na(new_name))
 # Rename Qualtrics columns
 colnames(qdata1) <- column_mapping_q$new_name
 
-# Delete first two data rows
+# Delete first two data rows - headers
 qdata1 <- qdata1[-c(1,2),]
 
 # Function to log columns with conversion issues
@@ -202,7 +202,6 @@ for (certif_other in certif_other_rename) {
 
 
 # 3. PREPARE REDCAP DATASET----
-
   
 # Read RedCap data and column mapping files
 rdata <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Assessment/Data analysis/R/RedCap_Labels_13.6.24.xlsx")
@@ -517,9 +516,6 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
   
   # Rename duplicate or misspelled brand names, including selecting first response where multiple are provided  
 
-    
-    # NOW I'M GETTING ERRORS!!!!!!!!!!!!!!!!! Change back to what it was?
-    
     # List of gsub replacements to be made
     replacements <- list(
       "Rio Bonito; Bio vida." = "Rio Bonito", # select first brand
@@ -889,8 +885,6 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
     dplyr::select(id, date_formatted, enumerator, city, latitude, longitude, vendor_name)
   write.xlsx(map_data, "map_data.xlsx")
   
-  # NEXT STEPS: Map circles, map points, join ones within circles to correct income level in new column,
-  # examine any outside circles to see if data entry error and should actually be elsewhere
 
   
 
