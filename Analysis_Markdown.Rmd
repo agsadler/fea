@@ -39,6 +39,8 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 
 ## Descriptive Results
 
+### Table 1
+
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 # Generate Table 1
 
@@ -134,6 +136,18 @@ tab1 <- tab1_data %>%
   ) %>%
   summary_rows(
     groups = everything(),
+    columns = vars(total_vendors, Higher, higher_perc,
+                   Middle, middle_perc,
+                   Lower, lower_perc, 
+                   `Mobile vendor`, mobile_vendor_perc,
+                   `Stationary small local vendor`,
+                   stationary_small_vendor_perc,
+                   Supermarket, supermarket_perc),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0
+  ) %>%
+  grand_summary_rows(
     columns = vars(total_vendors, Higher, higher_perc,
                    Middle, middle_perc,
                    Lower, lower_perc, 
@@ -1337,7 +1351,7 @@ tab4_country <- tab4_country_data %>%
   ) %>%
   sub_missing() 
 
-print(tab4_country)
+#print(tab4_country)
 
 # Export to table_outputs workbook
 addWorksheet(table_outputs, "Table 4 - country")
@@ -1416,7 +1430,7 @@ tab4_overall <- tab4_overall_data %>%
   ) %>%
   sub_missing() 
 
-print(tab4_overall)
+#print(tab4_overall)
 
 
 # Export to table_outputs workbook
