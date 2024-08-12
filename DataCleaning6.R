@@ -25,7 +25,7 @@ library(tidyr)
 library(tmap)
 
 # Set working directory
-setwd("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Assessment/Data analysis/R")
+#setwd("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Assessment/Data analysis/R")
 
 
 
@@ -34,9 +34,9 @@ setwd("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Ass
 # 2. PREPARE QUALTRICS DATASET----
 
 # Read Qualtrics data and column mapping files
-qdata <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Assessment/Data analysis/R/Qualtrics_19.6.24_Clean.xlsx")
+qdata <- read_excel("Inputs/Qualtrics_19.6.24_Clean.xlsx")
 
-column_mapping_q <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Assessment/Data analysis/R/column_mapping_qualtrics2.xlsx")
+column_mapping_q <- read_excel("Inputs/column_mapping_qualtrics2.xlsx")
 
 # Initialise Qualtrics data
 qdata1 <- qdata
@@ -204,9 +204,9 @@ for (certif_other in certif_other_rename) {
 # 3. PREPARE REDCAP DATASET----
   
 # Read RedCap data and column mapping files
-rdata <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Assessment/Data analysis/R/RedCap_Labels_13.6.24.xlsx")
+rdata <- read_excel("Inputs/RedCap_Labels_13.6.24.xlsx")
 
-column_mapping_r <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Assessment/Data analysis/R/column_mapping_redcap2.xlsx")
+column_mapping_r <- read_excel("Inputs/column_mapping_redcap2.xlsx")
   
 # Initialise RedCap data
 rdata1 <- rdata
@@ -379,7 +379,7 @@ combined_data <- combined_data %>%
     mutate(zero_products_count = rowSums(select(., all_of(zero_products_vector)) == "Yes", na.rm = TRUE))
   
   vendor_zero_products <- combined_data %>%
-    filter(zero_products_count == 0) # 17 records with zero days open
+    filter(zero_products_count == 0) # 17 zero sentinel products
   
   combined_data <- combined_data %>%
     filter(zero_products_count != 0)
@@ -547,10 +547,10 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
       "Gâ€™s Naturally Fresh" = "G's",
       "Gâ€™s" = "G's",
       "Gailâ€™s" = "Gails",
-      "Grahams (milk)" = "Grahams",
-      "Graham's" = "Grahams",
-      "Haldiram a" = "Haldirams",
-      "Haldiram" = "Haldirams",
+      #"Grahams (milk)" = "Grahams",
+      #"Graham's" = "Grahams",
+      #"Haldiram" = "Haldirams",
+      #"Haldiram a" = "Haldirams",
       "Infinity food" = "Infinity Foods",
       "Infinity foods" = "Infinity Foods",
       "KÃ³rin" = "Korin",
@@ -599,6 +599,10 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
       if (brand_name %in% colnames(combined_data)) {
         for (pattern in names(replacements)) {
           combined_data[[brand_name]] <- gsub(pattern, replacements[[pattern]], combined_data[[brand_name]])
+          combined_data[[brand_name]][grepl("Hald", combined_data[[brand_name]])] <- "Haldirams"
+          combined_data[[brand_name]][grepl("Graham", combined_data[[brand_name]])] <-"Grahams"
+          combined_data[[brand_name]][grepl("Clipp", combined_data[[brand_name]])] <-"Clipper"
+          combined_data[[brand_name]][grepl("Pure o", combined_data[[brand_name]])] <-"Pure O Natural"
         }
       }
     }
@@ -616,10 +620,7 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
       distinct(response) %>%
       arrange(response)
     
-  # NOTE: There are some errors, e.g. for Haldirams and Grahams and Clipper and Pure O Natural. Check in results table.  
-
-    
-    
+  
   
 # Clean up organic certification columns
     
@@ -779,6 +780,7 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
       if (pack_themes %in% colnames(combined_data)) {
         for (pattern_pack_themes in names(replacements_pack_themes)) {
           combined_data[[pack_themes]] <- gsub(pattern_pack_themes, replacements_pack_themes[[pattern_pack_themes]], combined_data[[pack_themes]])
+          combined_data[[pack_themes]][grepl("Animal wel", combined_data[[pack_themes]])] <- "Animal welfare"
         }
       }
     }
@@ -892,8 +894,8 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
 # 8. MAP POINTS TO ASSIGN CIRCLES AND CHECK FOR VALUES OUTSIDE CIRCLES----
   
   # Load your datasets
-  circlepoints <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Assessment/Data analysis/R/circle_coordinates_combined.xlsx")
-  vendors <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Assessment/Data analysis/R/map_data.xlsx")
+  circlepoints <- read_excel("Inputs/circle_coordinates_combined.xlsx")
+  vendors <- read_excel("Inputs/map_data.xlsx")
   
   # Confirm no missing values for latitude and longitude
   vendors <- vendors %>%
@@ -1308,7 +1310,7 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
   # Convert to USD
     
     # Import World Bank Official Exchange Rate dataset
-    exchange_rates <- read_excel("C:/Users/s1985751/OneDrive - University of Edinburgh/Food Environment Assessment/Data analysis/R/exchange_rates.xlsx")
+    exchange_rates <- read_excel("Inputs/exchange_rates.xlsx")
     
     # Ensure the date_formatted column is in the same format as the date column in exchange_rates - i.e. first of the month
     rice_prices_data <- rice_prices_data %>%
@@ -1415,7 +1417,7 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
   
   combined_data <- combined_data %>%
     mutate(multiple_org_binary = case_when(
-      multiple_org_count >= 1 ~ 1, # Assign 1 if count is greater than or equal to 1
+      (org_vendor == 1 & multiple_org_count >= 1) ~ 1, # Assign 1 if the vendor sells organic and the count is greater than or equal to 1
       TRUE ~ 0 # Assign 0 otherwise
     ))
   
