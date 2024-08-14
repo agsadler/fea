@@ -1393,7 +1393,14 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
                      "rice_org", "nut_org")
   
   combined_data <- combined_data %>%
-    mutate(org_foods_count = rowSums(select(., all_of(org_foods_vector)) == "Yes", na.rm = TRUE))
+        mutate(org_foods_count = rowSums(select(., all_of(org_foods_vector)) == "Yes", na.rm = TRUE))
+               
+               
+                 case_when(
+      org_vendor == 1 ~ rowSums(select(., all_of(org_foods_vector)) == "Yes", na.rm = TRUE), # if organic vendor, sum
+      TRUE ~ NA_real_
+      ))
+    
   
   # Create org_vendor binary variable for if vendors sell at least one organic sentinel food
 
@@ -1402,6 +1409,11 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
       org_foods_count >= 1 ~ 1, # Assign 1 if count is greater than or equal to 1
       TRUE ~ 0 # Assign 0 otherwise
     ))
+  
+  # Mutate org_foods_count to remove non-organic vendors
+  
+  combined_data$org_foods_count[combined_data$org_vendor == 0] <- NA
+  
   
   # Create multiple_org_count variable to count per vendor the number of organic sentinel foods with multiple options
   

@@ -32,7 +32,7 @@ data_clean <- read.xlsx("data_clean.xlsx", sheet = "data")
 
 # Create workbook for table data
 table_outputs <- createWorkbook()
-saveWorkbook(table_outputs, "table_outputs.xlsx", overwrite = TRUE)
+saveWorkbook(table_outputs, "Outputs/table_outputs.xlsx", overwrite = TRUE)
 
 
 ```
@@ -971,6 +971,8 @@ tab2_neighbourhood_data <- data_clean %>%
     iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
   ) %>%
   ungroup()
+
+print(tab2_neighbourhood_data)
 
 # Create the gt table
 tab2_neighbourhood <- tab2_neighbourhood_data %>%
