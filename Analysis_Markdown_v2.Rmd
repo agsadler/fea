@@ -1,0 +1,2864 @@
+---
+title: "Organic Food Environment Assessment"
+author: "Alexandra Sadler"
+date: "19/07/2024"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+# Load necessary libraries
+library(dplyr)
+library(gmodels)
+library(gt)
+library(knitr)
+library(kableExtra)
+library(openxlsx)
+library(readxl)
+library(readr)
+library(stats)
+library(tidyr)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+
+# Set working directory
+#setwd("C:/Users/s1985751/Documents/GitHub/fea")
+
+
+# Load cleaned data
+data_clean <- read.xlsx("data_clean.xlsx", sheet = "data")
+
+# Create workbook for table data
+table_outputs <- createWorkbook()
+saveWorkbook(table_outputs, "Outputs/table_outputs.xlsx", overwrite = TRUE)
+
+
+```
+
+## Descriptive Results
+
+### Table 1
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Generate Table 1
+
+# Calculate total vendors per city
+tab1_total_vendors <- data_clean %>%
+  group_by(country, city) %>%
+  summarise(total_vendors = n()) %>%
+  ungroup()
+
+# Calculate neighbourhood counts and percentages
+tab1_neighbourhood_data <- data_clean %>%
+  group_by(country, city, circle) %>%
+  summarise(count = n()) %>%
+  pivot_wider(names_from = circle, values_from = count, values_fill = list(count = 0)) %>%
+  ungroup() %>%
+  left_join(tab1_total_vendors, by = c("country", "city")) %>%
+  mutate(
+    higher_perc = Higher / total_vendors,
+    middle_perc = Middle / total_vendors,
+    lower_perc = Lower / total_vendors
+  ) %>%
+  select(country, city, total_vendors, Higher, higher_perc, Middle, middle_perc, Lower, lower_perc)
+
+# Calculate store type counts and percentages
+tab1_store_data <- data_clean %>%
+  group_by(country, city, vendor_type) %>%
+  summarise(count = n()) %>%
+  pivot_wider(names_from = vendor_type, values_from = count, values_fill = list(count = 0)) %>%
+  ungroup() %>%
+  left_join(tab1_total_vendors, by = c("country", "city")) %>%
+  mutate(
+    supermarket_perc = Supermarket / total_vendors,
+    mobile_vendor_perc = `Mobile vendor` / total_vendors,
+    stationary_small_vendor_perc = `Stationary small local vendor` / total_vendors
+  ) %>%
+  select(country, city, `Mobile vendor`, mobile_vendor_perc, `Stationary small local vendor`, stationary_small_vendor_perc, Supermarket, supermarket_perc,  )
+
+
+# Merge both datasets
+tab1_data <- tab1_neighbourhood_data %>%
+  left_join(tab1_store_data, by = c("country", "city"))
+
+
+# Create the gt table
+tab1 <- tab1_data %>%
+  gt(rowname_col = "city", groupname_col = "country") %>%
+  cols_label(
+    city = "City",
+    total_vendors = "Total vendors",
+    Higher = "Higher",
+    higher_perc = " ",
+    Middle = "Middle",
+    middle_perc = " ",
+    Lower = "Lower",
+    lower_perc = " ",
+    `Mobile vendor` = "Mobile vendor",
+    mobile_vendor_perc = " ",
+    `Stationary small local vendor` = "Stationary small vendor",
+    stationary_small_vendor_perc = " ",
+    Supermarket = "Supermarket",
+    supermarket_perc = " "
+  ) %>%
+  fmt_percent(
+    columns = vars(higher_perc, middle_perc, lower_perc,
+                   mobile_vendor_perc, stationary_small_vendor_perc,
+                   supermarket_perc),
+    decimals = 0
+  ) %>%
+  cols_merge(
+    columns = c("Higher", "higher_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Middle", "middle_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Lower", "lower_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Mobile vendor", "mobile_vendor_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Stationary small local vendor",
+                "stationary_small_vendor_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("Supermarket", "supermarket_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  summary_rows(
+    groups = everything(),
+    columns = vars(total_vendors, Higher, higher_perc,
+                   Middle, middle_perc,
+                   Lower, lower_perc, 
+                   `Mobile vendor`, mobile_vendor_perc,
+                   `Stationary small local vendor`,
+                   stationary_small_vendor_perc,
+                   Supermarket, supermarket_perc),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0
+  ) %>%
+  grand_summary_rows(
+    columns = vars(total_vendors, Higher, higher_perc,
+                   Middle, middle_perc,
+                   Lower, lower_perc, 
+                   `Mobile vendor`, mobile_vendor_perc,
+                   `Stationary small local vendor`,
+                   stationary_small_vendor_perc,
+                   Supermarket, supermarket_perc),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tab1
+
+# Note: I can't seem to get it to also have the percentage columns
+# Note: Also don't know how to do a grand total - keep getting errors
+
+# Export to table_outputs workbook
+
+addWorksheet(table_outputs, "Table 1")
+writeData(table_outputs, sheet = "Table 1", x = tab1)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+
+```
+
+
+
+## 1. What is the availability of organic food in urban food environments? How does this vary across different geographic and socioeconomic contexts?
+
+### Hypothesis 1a. Organic food availability will be highest in the United Kingdom, in larger cities within a given country, and in higher-income neighbourhoods within a given city.
+
+#### Kruskal-Wallis rank sum test
+
+##### Overall results (variation between countries)
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of country and org_foods_count
+kruskal_country_data <- data_clean %>%
+  select(country, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result_overall <- kruskal.test(org_foods_count ~ country, data = kruskal_country_data)
+  
+# Display the results
+print(result_overall)
+
+```
+
+##### Country-level results (variation between cities within a given country)
+
+###### Brazil
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Brazil
+brazil <- data_clean %>%
+  filter(country == "Brazil")
+
+# Create data frame of city and org_foods_count
+kruskal_brazil_city_data <- brazil %>%
+  select(city, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result_brazil <- kruskal.test(org_foods_count ~ city, data = kruskal_brazil_city_data)
+  
+# Display the results
+print(result_brazil)
+
+```
+
+###### India
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for India
+india <- data_clean %>%
+  filter(country == "India")
+
+# Create data frame of city and org_foods_count
+kruskal_india_city_data <- india %>%
+  select(city, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result_india <- kruskal.test(org_foods_count ~ city, data = kruskal_india_city_data)
+  
+# Display the results
+print(result_india)
+
+```
+
+###### United Kingdom
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for India
+uk <- data_clean %>%
+  filter(country == "UK")
+
+# Create data frame of city and org_foods_count
+kruskal_uk_city_data <- uk %>%
+  select(city, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result_uk <- kruskal.test(org_foods_count ~ city, data = kruskal_uk_city_data)
+  
+# Display the results
+print(result_uk)
+
+```
+
+##### City-level results (variation between neighbourhoods within a given city)
+
+###### Brazil: Rio de Janeiro
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Rio de Janeiro
+rio <- data_clean %>%
+  filter(city == "Rio de Janeiro")
+
+# Create data frame of circle and org_foods_count
+kruskal_rio_data <- rio %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result_rio <- kruskal.test(org_foods_count ~ circle, data = kruskal_rio_data)
+  
+# Display the results
+print(result_rio)
+
+```
+
+###### Brazil: Sao Paulo
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Sao Paulo
+saopaulo <- data_clean %>%
+  filter(city == "Sao Paolo")
+
+# Create data frame of circle and org_foods_count
+kruskal_saopaulo_data <- saopaulo %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result_saopaulo <- kruskal.test(org_foods_count ~ circle, data = kruskal_saopaulo_data)
+  
+# Display the results
+print(result_saopaulo)
+
+```
+
+###### Brazil: Sinop
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Sinop
+sinop <- data_clean %>%
+  filter(city == "Sinop")
+
+# Create data frame of circle and org_foods_count
+kruskal_sinop_data <- sinop %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result_sinop <- kruskal.test(org_foods_count ~ circle, data = kruskal_sinop_data)
+  
+# Display the results
+print(result_sinop)
+
+```
+
+
+###### India: Hyderabad
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Hyderabad
+hyderabad <- data_clean %>%
+  filter(city == "Hyderabad")
+
+# Create data frame of circle and org_foods_count
+kruskal_hyderabad_data <- hyderabad %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result_hyderabad <- kruskal.test(org_foods_count ~ circle, data = kruskal_hyderabad_data)
+  
+# Display the results
+print(result_hyderabad)
+
+```
+
+###### India: Latur
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Latur
+latur <- data_clean %>%
+  filter(city == "Latur")
+
+# Create data frame of circle and org_foods_count
+kruskal_latur_data <- latur %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result_latur <- kruskal.test(org_foods_count ~ circle, data = kruskal_latur_data)
+  
+# Display the results
+print(result_latur)
+
+```
+
+###### India: Visakhapatnam
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Visakhapatnam
+visakhapatnam <- data_clean %>%
+  filter(city == "Visakhapatnam")
+
+# Create data frame of circle and org_foods_count
+kruskal_visakhapatnam_data <- visakhapatnam %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result_visakhapatnam <- kruskal.test(org_foods_count ~ circle, data = kruskal_visakhapatnam_data)
+  
+# Display the results
+print(result_visakhapatnam)
+
+```
+
+###### United Kingdom: Birmingham
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Birmingham
+birmingham <- data_clean %>%
+  filter(city == "Birmingham")
+
+# Create data frame of circle and org_foods_count
+kruskal_birmingham_data <- birmingham %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result_birmingham <- kruskal.test(org_foods_count ~ circle, data = kruskal_birmingham_data)
+  
+# Display the results
+print(result_birmingham)
+
+```
+
+###### UK: Edinburgh
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for Edinburgh
+edinburgh <- data_clean %>%
+  filter(city == "Edinburgh")
+
+# Create data frame of circle and org_foods_count
+kruskal_edinburgh_data <- edinburgh %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result_edinburgh <- kruskal.test(org_foods_count ~ circle, data = kruskal_edinburgh_data)
+  
+# Display the results
+print(result_edinburgh)
+
+```
+
+###### UK: London
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame for London
+london <- data_clean %>%
+  filter(city == "London")
+
+# Create data frame of circle and org_foods_count
+kruskal_london_data <- london %>%
+  select(circle, org_foods_count)
+
+# Perform the Kruskal-Wallis test
+result_london <- kruskal.test(org_foods_count ~ circle, data = kruskal_london_data)
+  
+# Display the results
+print(result_london)
+
+```
+
+##### Summary of p-values
+
+###### Overall p-value
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+p_values_kruskal_overall <- result_overall$p.value
+
+print(p_values_kruskal_overall)
+```
+
+
+###### Country-level p-values
+```{r echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
+
+# Create a vector of country names
+country_names <- c("Brazil","India","UK")
+
+# Create a vector of the result object names
+kruskal_country_result_names <- c("result_brazil", "result_india", "result_uk")
+
+# Retrieve results and store in a list
+kruskal_country_result_list <- mget(kruskal_country_result_names)
+
+# Print list to confirm
+print(kruskal_country_result_list)
+
+# Extract p-values from the results
+p_values_kruskal_country <- sapply(kruskal_country_result_list, function(res) res$p.value)
+
+# Create a dataframe
+p_values_kruskal_country_df <- data.frame(
+  Country = country_names,
+  PValue = p_values_kruskal_country
+)
+
+print(p_values_kruskal_country_df)
+
+```
+
+###### City-level p-values
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
+
+# Create a vector of city names
+city_names <- c("Rio de Janeiro","Sao Paolo","Sinop",
+                "Hyderabad","Latur","Visakhapatnam",
+                "Birmingham","Edinburgh","London")
+
+# Create a vector of the result object names
+kruskal_city_result_names <- c("result_rio","result_saopaulo","result_sinop",
+                               "result_hyderabad","result_latur",
+                               "result_visakhapatnam","result_birmingham",
+                               "result_edinburgh","result_london")
+
+# Retrieve results and store in a list
+kruskal_city_result_list <- mget(kruskal_city_result_names)
+
+# Print list to confirm
+print(kruskal_city_result_list)
+
+# Extract p-values from the results
+p_values_kruskal_city <- sapply(kruskal_city_result_list, function(res) res$p.value)
+
+# Create a dataframe
+p_values_kruskal_city_df <- data.frame(
+  City = city_names,
+  PValue = p_values_kruskal_city
+)
+
+print(p_values_kruskal_city_df)
+
+
+```
+
+
+#### Chi-squared test
+
+##### Overall results (variation between countries)
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Prepare a contingency table
+contingency_table <- data_clean %>%
+  group_by(country, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$country
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Chi-squared test
+chi_result_overall <- chisq.test(data_matrix)
+
+# Display the results
+print(chi_result_overall)
+
+```
+
+##### Country-level results (variation between cities within a given country)
+
+###### Brazil
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Prepare a contingency table
+contingency_table <- brazil %>%
+  group_by(city, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$city
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Chi-squared test
+chi_result_brazil <- chisq.test(data_matrix)
+
+# Display the results
+print(chi_result_brazil)
+
+```
+
+###### India
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Prepare a contingency table
+contingency_table <- india %>%
+  group_by(city, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$city
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Chi-squared test
+chi_result_india <- chisq.test(data_matrix)
+
+# Display the results
+print(chi_result_india)
+```
+
+###### United Kingdom
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Prepare a contingency table
+contingency_table <- uk %>%
+  group_by(city, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$city
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Chi-squared test
+chi_result_uk <- chisq.test(data_matrix)
+
+# Display the results
+print(chi_result_uk)
+```
+
+##### Neighbourhood-level results (variation between neighbourhoods within a given city)
+
+###### Brazil: Rio de Janeiro
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- rio %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Chi-squared test
+chi_result_rio <- chisq.test(data_matrix)
+
+# Display the results
+print(chi_result_rio)
+
+```
+
+
+###### Brazil: Sao Paulo
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- saopaulo %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Chi-squared test
+chi_result_saopaulo <- chisq.test(data_matrix)
+
+# Display the results
+print(chi_result_saopaulo)
+
+```
+
+###### Brazil: Sinop
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- sinop %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Chi-squared test
+chi_result_sinop <- chisq.test(data_matrix)
+
+# Display the results
+print(chi_result_sinop)
+
+```
+
+###### India: Hyderabad
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- hyderabad %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Chi-squared test
+chi_result_hyderabad <- chisq.test(data_matrix)
+
+# Display the results
+print(chi_result_hyderabad)
+
+```
+
+###### India: Latur
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- latur %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Chi-squared test
+chi_result_latur <- chisq.test(data_matrix)
+
+# Display the results
+print(chi_result_latur)
+
+```
+
+###### India: Visakhapatnam
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- visakhapatnam %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Chi-squared test
+chi_result_visakhapatnam <- chisq.test(data_matrix)
+
+# Display the results
+print(chi_result_visakhapatnam)
+```
+
+###### United Kingdom: Birmingham
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- birmingham %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Chi-squared test
+chi_result_birmingham <- chisq.test(data_matrix)
+
+# Display the results
+print(chi_result_birmingham)
+
+```
+
+###### United Kingdom: Edinburgh
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- edinburgh %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Chi-squared test
+chi_result_edinburgh <- chisq.test(data_matrix)
+
+# Display the results
+print(chi_result_edinburgh)
+
+```
+
+###### United Kingdom: London
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Prepare a contingency table
+contingency_table <- london %>%
+  group_by(circle, org_vendor) %>%
+  tally() %>%
+  pivot_wider(names_from = org_vendor, values_from = n, values_fill = list(n = 0))
+
+# Convert to matrix 
+data_matrix <- as.matrix(contingency_table[, -1])
+
+# Set row names
+rownames(data_matrix) <- contingency_table$circle
+
+# Display the matrix to check if it's correct
+print(data_matrix)
+
+# Perform Chi-squared test
+chi_result_london <- chisq.test(data_matrix)
+
+# Display the results
+print(chi_result_london)
+
+```
+
+##### Summary of p-values
+
+###### Overall p-value
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+p_values_chi_overall <- chi_result_overall$p.value
+
+print(p_values_chi_overall)
+```
+
+
+###### Country-level p-values
+```{r echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
+
+# Create a vector of country names
+country_names <- c("Brazil","India","UK")
+
+# Create a vector of the result object names
+chi_country_result_names <- c("chi_result_brazil", "chi_result_india", "chi_result_uk")
+
+# Retrieve results and store in a list
+chi_country_result_list <- mget(chi_country_result_names)
+
+# Print list to confirm
+print(chi_country_result_list)
+
+# Extract p-values from the results
+p_values_chi_country <- sapply(chi_country_result_list, function(res) res$p.value)
+
+# Create a dataframe
+p_values_chi_country_df <- data.frame(
+  Country = country_names,
+  PValue = p_values_chi_country
+)
+
+print(p_values_chi_country_df)
+
+```
+
+
+###### City-level p-values
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, results = 'hide'}
+
+# Create a vector of city names
+city_names <- c("Rio de Janeiro","Sao Paolo","Sinop",
+                "Hyderabad","Latur","Visakhapatnam",
+                "Birmingham","Edinburgh","London")
+
+# Create a vector of the result object names
+chi_city_result_names <- c("chi_result_rio","chi_result_saopaulo",
+                          "chi_result_sinop","chi_result_hyderabad",
+                          "chi_result_latur","chi_result_visakhapatnam",
+                          "chi_result_birmingham", "chi_result_edinburgh",
+                          "chi_result_london")
+
+# Retrieve results and store in a list
+chi_city_result_list <- mget(chi_city_result_names)
+
+# Print list to confirm
+print(chi_city_result_list)
+
+# Extract p-values from the results
+p_values_chi_city <- sapply(chi_city_result_list, function(res) res$p.value)
+
+# Create a dataframe
+p_values_chi_city_df <- data.frame(
+  City = city_names,
+  PValue = p_values_chi_city
+)
+
+print(p_values_chi_city_df)
+
+
+```
+
+
+#### Table 2
+
+##### For each neighbourhood within each city
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Define order of neighbourhood variable
+circle_order <- c("Higher","Middle","Lower")
+  
+# Convert the circle column to a factor with the specified levels
+data_clean <- data_clean %>%
+  mutate(circle = factor(circle, levels = circle_order))
+
+# Median and IQR number of organic sentinel foods
+tab2_neighbourhood_data <- data_clean %>%
+  group_by(country, city, circle) %>%
+  summarise(
+    vendors = n(),
+    count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    org_vendor_perc = count_org_vendors / vendors,
+    median_org_foods_count = median(org_foods_count, na.rm = TRUE),
+    iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+print(tab2_neighbourhood_data)
+
+# Create the gt table
+tab2_neighbourhood <- tab2_neighbourhood_data %>%
+  gt(rowname_col = "circle", groupname_col = c("country","city")) %>%
+  cols_label(
+    country = "Country",
+    city = "City",
+    circle = "Neighbourhood",
+    vendors = "Total vendors",
+    count_org_vendors = "Organic vendors, n(%)",
+    org_vendor_perc = " ",
+    median_org_foods_count = "Organic sentinel foods, median (IQR)",
+    iqr_org_foods_count = " "
+  ) %>%
+  fmt_percent(
+    columns = vars(org_vendor_perc),
+    decimals = 0
+  ) %>%
+  cols_merge(
+    columns = c("count_org_vendors", "org_vendor_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("median_org_foods_count", "iqr_org_foods_count"),
+    pattern = "{1} ({2})"
+  ) %>%
+  summary_rows(
+    groups = everything(),
+    columns = vars(vendors, count_org_vendors, org_vendor_perc,
+                   median_org_foods_count, iqr_org_foods_count),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tab2_neighbourhood
+
+# Note: I can't seem to get it to also have the percentage columns in the summary
+# Note: Also don't know how to do a grand total - keep getting errors
+
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 2 - neighbourhood")
+writeData(table_outputs, sheet = "Table 2 - neighbourhood", x = tab2_neighbourhood)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+# create a variable to check how results would change if adding NA to org_foods_count for non organic vendors
+data_clean$org_foods_count2 <- as.numeric(data_clean$org_foods_count)
+data_clean$org_foods_count2[data_clean$org_vendor %in% 0] <- NA
+
+# check how results would change
+data_clean %>%
+  group_by(country, city, circle) %>%
+  summarise(
+    median_org_foods_count = median(org_foods_count2, na.rm = TRUE),
+    iqr_org_foods_count = IQR(org_foods_count2, na.rm = TRUE)
+  )
+```
+
+##### For each city within each country
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# N, %, median and IQR - city level
+tab2_city_data <- data_clean %>%
+  group_by(country, city) %>%
+  summarize(
+    vendors = n(),
+    count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    org_vendor_perc = count_org_vendors / vendors,
+    median_org_foods_count = median(org_foods_count, na.rm = TRUE),
+    iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+print(tab2_city_data)
+
+
+# Create the gt table
+tab2_city <- tab2_city_data %>%
+  gt(rowname_col = "city", groupname_col = c("country")) %>%
+  cols_label(
+    country = "Country",
+    city = "City",
+    vendors = "Total vendors",
+    count_org_vendors = "Organic vendors, n(%)",
+    org_vendor_perc = " ",
+    median_org_foods_count = "Organic sentinel foods, median (IQR)",
+    iqr_org_foods_count = " "
+  ) %>%
+  fmt_percent(
+    columns = vars(org_vendor_perc),
+    decimals = 0
+  ) %>%
+  cols_merge(
+    columns = c("count_org_vendors", "org_vendor_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("median_org_foods_count", "iqr_org_foods_count"),
+    pattern = "{1} ({2})"
+  ) %>%
+  summary_rows(
+    groups = everything(),
+    columns = vars(vendors, count_org_vendors, org_vendor_perc,
+                   median_org_foods_count, iqr_org_foods_count),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tab2_city
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 2 - city")
+writeData(table_outputs, sheet = "Table 2 - city", x = tab2_city)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+##### For each country
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# N, %, median and IQR - country level
+tab2_country_data <- data_clean %>%
+  group_by(country) %>%
+  summarize(
+    vendors = n(),
+    count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    org_vendor_perc = count_org_vendors / vendors,
+    median_org_foods_count = median(org_foods_count, na.rm = TRUE),
+    iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Print output
+print(tab2_country_data)
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 2 - country")
+writeData(table_outputs, sheet = "Table 2 - country", x = tab2_country_data)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+##### Overall
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# N, %, median and IQR - country level
+tab2_overall <- data_clean %>%
+  summarize(
+    vendors = n(),
+    count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    org_vendor_perc = count_org_vendors / vendors,
+    median_org_foods_count = median(org_foods_count, na.rm = TRUE),
+    iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Print
+print(tab2_overall)
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 2 - overall")
+writeData(table_outputs, sheet = "Table 2 - overall", x = tab2_overall)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+
+### Exploratory Analysis: Hypothesis 1b. The count and proportion of vendors selling multiple organic options for at least one sentinel food will be highest in the United Kingdom, in larger cities within a given country, and in higher-income neighbourhoods within a given city.
+
+
+#### Table 3
+
+##### For each neighbourhood within each city
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# N, %, median and IQR - neighbourhood level
+tab3_neighbourhood_data <- data_clean %>%
+  group_by(country, city, circle) %>%
+  summarize(
+    organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    n_multiple_org_binary = sum(multiple_org_binary == 1, na.rm = TRUE),
+    perc_multiple_org_binary = n_multiple_org_binary / organic_vendors,
+    median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
+    iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Create the gt table
+tab3_neighbourhood <- tab3_neighbourhood_data %>%
+  gt(rowname_col = "circle", groupname_col = c("country","city")) %>%
+  cols_label(
+    country = "Country",
+    city = "City",
+    circle = "Neighbourhood",
+    n_multiple_org_binary = "Organic vendors with multiple options (>1 product), n(%)",
+    perc_multiple_org_binary = " ",
+    median_multiple_org_count = "Foods with multiple options, median (IQR)",
+    iqr_multiple_org_count = " "
+  ) %>%
+  fmt_percent(
+    columns = vars(perc_multiple_org_binary),
+    decimals = 0
+  ) %>%
+  cols_merge(
+    columns = c("n_multiple_org_binary", "perc_multiple_org_binary"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("median_multiple_org_count", "iqr_multiple_org_count"),
+    pattern = "{1} ({2})"
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tab3_neighbourhood
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 3 - neighbourhood")
+writeData(table_outputs, sheet = "Table 3 - neighbourhood", x = tab3_neighbourhood)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+##### For each city within each country
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# N, %, median and IQR - city level
+tab3_city_data <- data_clean %>%
+  group_by(country, city) %>%
+  summarize(
+    organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    n_multiple_org_binary = sum(multiple_org_binary == 1, na.rm = TRUE),
+    perc_multiple_org_binary = n_multiple_org_binary / organic_vendors,
+    median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
+    iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Create the gt table
+tab3_city <- tab3_city_data %>%
+  gt(rowname_col = "city", groupname_col = "country") %>%
+  cols_label(
+    country = "Country",
+    city = "City",
+    n_multiple_org_binary = "Organic vendors with multiple options (>1 product), n(%)",
+    perc_multiple_org_binary = " ",
+    median_multiple_org_count = "Foods with multiple options, median (IQR)",
+    iqr_multiple_org_count = " "
+  ) %>%
+  fmt_percent(
+    columns = vars(perc_multiple_org_binary),
+    decimals = 0
+  ) %>%
+  cols_merge(
+    columns = c("n_multiple_org_binary", "perc_multiple_org_binary"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("median_multiple_org_count", "iqr_multiple_org_count"),
+    pattern = "{1} ({2})"
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tab3_city
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 3 - city")
+writeData(table_outputs, sheet = "Table 3 - city", x = tab3_city)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+```
+
+##### For each country
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# N, %, median and IQR - country level
+tab3_country_data <- data_clean %>%
+  group_by(country) %>%
+  summarize(
+    organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    n_multiple_org_binary = sum(multiple_org_binary == 1, na.rm = TRUE),
+    perc_multiple_org_binary = n_multiple_org_binary / organic_vendors,
+    median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
+    iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+print(tab3_country_data)
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 3 - country")
+writeData(table_outputs, sheet = "Table 3 - country", x = tab3_country_data)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+```
+
+##### Overall
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# N, %, median and IQR - overall
+tab3_overall_data <- data_clean %>%
+  summarize(
+    organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    n_multiple_org_binary = sum(multiple_org_binary == 1, na.rm = TRUE),
+    perc_multiple_org_binary = n_multiple_org_binary / organic_vendors,
+    median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
+    iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+print(tab3_overall_data)
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 3 - overall")
+writeData(table_outputs, sheet = "Table 3 - overall", x = tab3_overall_data)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+
+### Exploratory Analysis: Organic versus non-organic vendor characteristics
+
+#### Table 4
+
+##### Country-level
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Summarize the data grouped by `org_vendor` and `country`
+
+
+
+tab4_country_data <- data_clean %>%
+  group_by(country, org_vendor) %>%
+  summarize(
+    median_vendor_cashiers = median(vendor_cashiers, na.rm = TRUE),
+    iqr_vendor_cashiers = IQR(vendor_cashiers, na.rm = TRUE),
+    min_vendor_cashiers = min(vendor_cashiers, na.rm = TRUE),
+    max_vendor_cashiers = max(vendor_cashiers, na.rm = TRUE),
+
+    median_days_open_count = median(days_open_count, na.rm = TRUE),
+    iqr_days_open_count = IQR(days_open_count, na.rm = TRUE),
+    min_days_open_count = min(days_open_count, na.rm = TRUE),
+    max_days_open_count = max(days_open_count, na.rm = TRUE),
+    
+    median_foods_count = median(foods_count, na.rm = TRUE),
+    iqr_foods_count = IQR(foods_count, na.rm = TRUE),
+    min_foods_count = min(foods_count, na.rm = TRUE),
+    max_foods_count = max(foods_count, na.rm = TRUE)
+  ) %>%
+  ungroup() 
+
+# Display the country-level results
+print(tab4_country_data)
+
+# Relabel organic vendor status
+tab4_country_data <- tab4_country_data %>%
+  mutate(org_vendor = recode(org_vendor, '1' = 'Organic','0' = 'Non-organic'))
+
+# Create the gt table
+tab4_country <- tab4_country_data %>%
+  gt(rowname_col = "org_vendor", groupname_col = c("country")) %>%
+  cols_label(
+    country = "Country",
+    org_vendor = "Organic status",
+    
+    median_vendor_cashiers = "Cashiers, median(IQR), min-max",
+    iqr_vendor_cashiers = " ",
+    min_vendor_cashiers = " ",
+    max_vendor_cashiers = " ",
+    
+    median_days_open_count = "Days open, median(IQR), min-max",
+    iqr_days_open_count = " ",
+    min_days_open_count = " ",
+    max_days_open_count = " ",
+    
+    median_foods_count = "Sentinel products sold, median(IQR), min-max",
+    iqr_foods_count = " ",
+    min_foods_count = " ",
+    max_foods_count = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_vendor_cashiers", "iqr_vendor_cashiers", 
+                "min_vendor_cashiers", "max_vendor_cashiers"),
+    pattern = "{1}({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_days_open_count", "iqr_days_open_count", 
+                "min_days_open_count", "max_days_open_count"),
+    pattern = "{1}({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_foods_count", "iqr_foods_count", 
+                "min_foods_count", "max_foods_count"),
+    pattern = "{1}({2}), {3}-{4}"
+  ) %>%
+  sub_missing() 
+
+#print(tab4_country)
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 4 - country")
+writeData(table_outputs, sheet = "Table 4 - country", x = tab4_country)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+##### Overall
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Summarize the data for overall statistics grouped by `org_vendor`
+
+tab4_overall_days <- data_clean %>%
+  group_by(org_vendor, days_open_category) %>%
+  summarise(vendor_count = n(), .groups = "drop") %>%
+  pivot_wider(names_from = days_open_category, values_from = vendor_count, 
+                  values_fill = 0, # Fill missing combinations with 0
+                  names_prefix = "open_") %>%
+  mutate(
+    total_vendors = rowSums(select(., starts_with("open_"))),
+    across(starts_with("open_"), ~ . / total_vendors * 100, .names = "percent_{col}"))
+
+
+tab4_overall_data <- data_clean %>%
+  group_by(org_vendor) %>%
+  summarize(
+    median_vendor_cashiers = median(vendor_cashiers, na.rm = TRUE),
+    iqr_vendor_cashiers = IQR(vendor_cashiers, na.rm = TRUE),
+    min_vendor_cashiers = min(vendor_cashiers, na.rm = TRUE),
+    max_vendor_cashiers = max(vendor_cashiers, na.rm = TRUE),
+    
+    median_foods_count = median(foods_count, na.rm = TRUE),
+    iqr_foods_count = IQR(foods_count, na.rm = TRUE),
+    min_foods_count = min(foods_count, na.rm = TRUE),
+    max_foods_count = max(foods_count, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  left_join(tab4_overall_days, by = "org_vendor") %>%
+  mutate(
+    vendor_cashiers_summary = paste0(median_vendor_cashiers, " (", iqr_vendor_cashiers, "), ", 
+                                     min_vendor_cashiers, " - ", max_vendor_cashiers),
+    foods_count_summary = paste0(median_foods_count, " (", iqr_foods_count, "), ",
+                                 min_foods_count, " - ", max_foods_count),
+    days_open_1_3_summary = paste0(`open_1-3`, " (", 
+                                   ifelse(`percent_open_1-3` < 1, round(`percent_open_1-3`, 1), round(`percent_open_1-3`)), 
+                                   "%)"),
+    days_open_4_5_summary = paste0(`open_4-5`, " (", 
+                                   ifelse(`percent_open_4-5` < 1, round(`percent_open_4-5`, 1), round(`percent_open_4-5`)), 
+                                   "%)"),
+    days_open_6_7_summary = paste0(`open_6-7`, " (", 
+                                   ifelse(`percent_open_6-7` < 1, round(`percent_open_6-7`, 1), round(`percent_open_6-7`)), 
+                                   "%)"),
+  ) %>%
+  select(org_vendor, vendor_cashiers_summary, days_open_1_3_summary, 
+         days_open_4_5_summary, days_open_6_7_summary, foods_count_summary) %>%
+  mutate(org_vendor = recode(org_vendor, '1' = 'Organic','0' = 'Non-organic'))
+
+# Display the overall results
+print(tab4_overall_data)
+
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 4 - overall")
+writeData(table_outputs, sheet = "Table 4 - overall", x = tab4_overall)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+```
+
+
+## 2. How affordable is a sentinel organic food (rice) compared to a non-organic sentinel food (rice) in urban food environments? How does this vary across different geographic contexts?
+
+### Hypothesis 2a. The price of organic rice will be significantly higher than the price of non-organic rice overall and at the country level.
+
+
+```{r include=FALSE}
+
+# Load cleaned rice prices data
+rice_prices_data <- read.xlsx("rice_prices_data_clean.xlsx", sheet = "data")
+
+```
+
+#### Wilcoxon Rank-Sum Test / Mann-Whitney U test
+
+##### Overall results
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of overall prices
+mw_rice_prices_data_overall <- rice_prices_data %>%
+  select(rice_price_org_kg_usd, rice_price_conv_kg_usd)
+
+# Reshape data to long form
+reshaped_data <- mw_rice_prices_data_overall %>%
+  pivot_longer(cols = c(rice_price_org_kg_usd, rice_price_conv_kg_usd), 
+               names_to = "type", 
+               values_to = "price") %>%
+  mutate(type = ifelse(type == "rice_price_org_kg_usd", "organic", "conventional")) %>%
+  filter(!is.na(price))
+
+# Specify order because function otherwise sets first group alphabetically
+reshaped_data$type <- factor(reshaped_data$type, 
+                              levels = c("organic", "conventional"))
+
+# Overall Mann-Whitney U test
+overall_test <- wilcox.test(price ~ type, data = reshaped_data, 
+                            alternative = "greater")
+
+overall_p_value_one_tailed <- overall_test$p.value / 2
+
+print(overall_test)
+cat("Overall Mann-Whitney U test p-value (one-tailed):", overall_p_value_one_tailed, "\n")
+
+```
+
+##### Country-level results: Brazil
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of Brazil prices
+mw_rice_prices_data_brazil <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd) %>%
+  filter(country == "Brazil")
+  
+# Reshape data to long form
+reshaped_data_brazil <- mw_rice_prices_data_brazil %>%
+  pivot_longer(cols = c(rice_price_org_kg_usd, rice_price_conv_kg_usd), 
+               names_to = "type", 
+               values_to = "price") %>%
+  mutate(type = ifelse(type == "rice_price_org_kg_usd", "organic", "conventional")) %>%
+  filter(!is.na(price))
+
+# Specify order because function otherwise sets first group alphabetically
+reshaped_data_brazil$type <- factor(reshaped_data_brazil$type, 
+                              levels = c("organic", "conventional"))
+
+# Brazil Mann-Whitney U test
+brazil_test <- wilcox.test(price ~ type, data = reshaped_data_brazil, 
+                            alternative = "greater")
+
+brazil_p_value_one_tailed <- brazil_test$p.value / 2
+
+print(brazil_test)
+cat("Overall Mann-Whitney U test p-value (one-tailed):", brazil_p_value_one_tailed, "\n")
+
+```
+
+
+##### Country-level results: India
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of India prices
+mw_rice_prices_data_india <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd) %>%
+  filter(country == "India")
+  
+# Reshape data to long form
+reshaped_data_india <- mw_rice_prices_data_india %>%
+  pivot_longer(cols = c(rice_price_org_kg_usd, rice_price_conv_kg_usd), 
+               names_to = "type", 
+               values_to = "price") %>%
+  mutate(type = ifelse(type == "rice_price_org_kg_usd", "organic", "conventional")) %>%
+  filter(!is.na(price))
+
+# Specify order because function otherwise sets first group alphabetically
+reshaped_data_india$type <- factor(reshaped_data_india$type, 
+                              levels = c("organic", "conventional"))
+
+# India Mann-Whitney U test
+india_test <- wilcox.test(price ~ type, data = reshaped_data_india, 
+                            alternative = "greater")
+
+india_p_value_one_tailed <- india_test$p.value / 2
+
+print(india_test)
+cat("Overall Mann-Whitney U test p-value (one-tailed):", india_p_value_one_tailed, "\n")
+
+```
+
+##### Country-level results: UK
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of UK prices
+mw_rice_prices_data_uk <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd) %>%
+  filter(country == "UK")
+  
+# Reshape data to long form
+reshaped_data_uk <- mw_rice_prices_data_uk %>%
+  pivot_longer(cols = c(rice_price_org_kg_usd, rice_price_conv_kg_usd), 
+               names_to = "type", 
+               values_to = "price") %>%
+  mutate(type = ifelse(type == "rice_price_org_kg_usd", "organic", "conventional")) %>%
+  filter(!is.na(price))
+
+# Specify order because function otherwise sets first group alphabetically
+reshaped_data_uk$type <- factor(reshaped_data_uk$type, 
+                              levels = c("organic", "conventional"))
+
+# UK Mann-Whitney U test
+uk_test <- wilcox.test(price ~ type, data = reshaped_data_uk, 
+                            alternative = "greater")
+
+uk_p_value_one_tailed <- uk_test$p.value / 2
+
+print(uk_test)
+cat("Overall Mann-Whitney U test p-value (one-tailed):", uk_p_value_one_tailed, "\n")
+
+```
+
+
+
+#### Table 5
+
+##### City-level
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Calculate number of organic and conventional vendors, median, IQR, min and max price
+tab5_city_data <- rice_prices_data %>%
+  group_by(country, city) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg_usd)),
+    median_org_rice = median(rice_price_org_kg_usd, na.rm = TRUE),
+    iqr_org_rice = IQR(rice_price_org_kg_usd, na.rm = TRUE),
+    min_org_rice = min(rice_price_org_kg_usd, na.rm = TRUE),
+    max_org_rice = max(rice_price_org_kg_usd, na.rm = TRUE),
+    median_conv_rice = median(rice_price_conv_kg_usd, na.rm = TRUE),
+    iqr_conv_rice = IQR(rice_price_conv_kg_usd, na.rm = TRUE),
+    min_conv_rice = min(rice_price_conv_kg_usd, na.rm = TRUE),
+    max_conv_rice = max(rice_price_conv_kg_usd, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+# Create the gt table
+tab5_city <- tab5_city_data %>%
+  gt(rowname_col = "city", groupname_col = c("country")) %>%
+  cols_label(
+    country = "Country",
+    city = "City",
+    count_org_rice_vendors = "Organic sample size (n)",
+    count_conv_rice_vendors = "Conventional sample size (n)",
+    median_org_rice = "Organic median (IQR), min-max (US$)",
+    iqr_org_rice = " ",
+    min_org_rice = " ",
+    max_org_rice = " ",
+    median_conv_rice = "Conventional median (IQR), min-max (US$)",
+    iqr_conv_rice = " ",
+    min_conv_rice = " ",
+    max_conv_rice = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_org_rice", "iqr_org_rice", "min_org_rice", "max_org_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_conv_rice", "iqr_conv_rice", "min_conv_rice", "max_conv_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+  fmt_number(
+    columns = vars(median_org_rice, iqr_org_rice, min_org_rice, max_org_rice,
+                   median_conv_rice, iqr_conv_rice, min_conv_rice, max_conv_rice),
+    decimals = 2
+  ) %>%
+  summary_rows(
+    groups = everything(),
+    columns = vars(count_org_rice_vendors,count_conv_rice_vendors),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0,
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tab5_city
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 5 - city")
+writeData(table_outputs, sheet = "Table 5 - city", x = tab5_city)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+##### Country-level
+
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Calculate number of organic and conventional vendors, median, IQR, min and max price
+tab5_country_data <- rice_prices_data %>%
+  group_by(country) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg_usd)),
+    median_org_rice = median(rice_price_org_kg_usd, na.rm = TRUE),
+    iqr_org_rice = IQR(rice_price_org_kg_usd, na.rm = TRUE),
+    min_org_rice = min(rice_price_org_kg_usd, na.rm = TRUE),
+    max_org_rice = max(rice_price_org_kg_usd, na.rm = TRUE),
+    median_conv_rice = median(rice_price_conv_kg_usd, na.rm = TRUE),
+    iqr_conv_rice = IQR(rice_price_conv_kg_usd, na.rm = TRUE),
+    min_conv_rice = min(rice_price_conv_kg_usd, na.rm = TRUE),
+    max_conv_rice = max(rice_price_conv_kg_usd, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+tab5_country <- tab5_country_data %>%
+  gt() %>%
+  cols_label(
+    country = "Country",
+    count_org_rice_vendors = "Organic sample size (n)",
+    count_conv_rice_vendors = "Conventional sample size (n)",
+    median_org_rice = "Organic median (IQR), min-max (US$)",
+    iqr_org_rice = " ",
+    min_org_rice = " ",
+    max_org_rice = " ",
+    median_conv_rice = "Conventional median (IQR), min-max (US$)",
+    iqr_conv_rice = " ",
+    min_conv_rice = " ",
+    max_conv_rice = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_org_rice", "iqr_org_rice", "min_org_rice", "max_org_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_conv_rice", "iqr_conv_rice", "min_conv_rice", "max_conv_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+  fmt_number(
+    columns = vars(median_org_rice, iqr_org_rice, min_org_rice, max_org_rice,
+                   median_conv_rice, iqr_conv_rice, min_conv_rice, max_conv_rice),
+    decimals = 2
+  ) %>%
+  grand_summary_rows(
+    columns = vars(count_org_rice_vendors,count_conv_rice_vendors),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0,
+  ) %>%
+  sub_missing() 
+
+# Display the table
+tab5_country
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 5 - country")
+writeData(table_outputs, sheet = "Table 5 - country", x = tab5_country)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+##### Overall
+
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Calculate number of organic and conventional vendors, median, IQR, min and max price
+tab5_overall_data <- rice_prices_data %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg_usd)),
+    median_org_rice = median(rice_price_org_kg_usd, na.rm = TRUE),
+    iqr_org_rice = IQR(rice_price_org_kg_usd, na.rm = TRUE),
+    min_org_rice = min(rice_price_org_kg_usd, na.rm = TRUE),
+    max_org_rice = max(rice_price_org_kg_usd, na.rm = TRUE),
+    median_conv_rice = median(rice_price_conv_kg_usd, na.rm = TRUE),
+    iqr_conv_rice = IQR(rice_price_conv_kg_usd, na.rm = TRUE),
+    min_conv_rice = min(rice_price_conv_kg_usd, na.rm = TRUE),
+    max_conv_rice = max(rice_price_conv_kg_usd, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+# Create gt table
+tab5_overall <- tab5_overall_data %>%
+  gt() %>%
+  cols_label(
+    count_org_rice_vendors = "Organic sample size (n)",
+    count_conv_rice_vendors = "Conventional sample size (n)",
+    median_org_rice = "Organic median (IQR), min-max (US$)",
+    iqr_org_rice = " ",
+    min_org_rice = " ",
+    max_org_rice = " ",
+    median_conv_rice = "Conventional median (IQR), min-max (US$)",
+    iqr_conv_rice = " ",
+    min_conv_rice = " ",
+    max_conv_rice = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_org_rice", "iqr_org_rice", "min_org_rice", "max_org_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_conv_rice", "iqr_conv_rice", "min_conv_rice", "max_conv_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+  fmt_number(
+    columns = vars(median_org_rice, iqr_org_rice, min_org_rice, max_org_rice,
+                   median_conv_rice, iqr_conv_rice, min_conv_rice, max_conv_rice),
+    decimals = 2
+  ) %>%
+  sub_missing() 
+
+# Display the table
+tab5_overall
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 5 - overall")
+writeData(table_outputs, sheet = "Table 5 - overall", x = tab5_overall)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+### Hypothesis 2b. The price of organic rice will be significantly higher than the price of non-organic rice when sold at the same vendor location.
+
+#### Wilcoxon Signed Rank Test
+
+##### Overall results
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of rice prices for vendors selling both organic and conventional
+wsr_rice_prices_data_overall <- rice_prices_data %>%
+  select(rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
+  filter(rice_price_both == 1)
+
+# Overall Wilcoxon Signed Rank test
+wsr_overall_test <- wilcox.test(wsr_rice_prices_data_overall$rice_price_org_kg_usd,
+                            wsr_rice_prices_data_overall$rice_price_conv_kg_usd,
+                            alternative = "greater", paired = TRUE)
+
+wsr_overall_p_value_one_tailed <- wsr_overall_test$p.value / 2
+
+print(wsr_overall_test)
+cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_overall_p_value_one_tailed, "\n")
+
+```
+
+##### Country-level results: Brazil
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of rice prices for vendors selling both organic and conventional
+wsr_rice_prices_data_brazil <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
+  filter(rice_price_both == 1) %>%
+  filter(country == "Brazil")
+
+# Overall Wilcoxon Signed Rank test
+wsr_brazil_test <- wilcox.test(wsr_rice_prices_data_brazil$rice_price_org_kg_usd,
+                            wsr_rice_prices_data_brazil$rice_price_conv_kg_usd,
+                            alternative = "greater", paired = TRUE)
+
+wsr_brazil_p_value_one_tailed <- wsr_brazil_test$p.value / 2
+
+print(wsr_brazil_test)
+cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_brazil_p_value_one_tailed, "\n")
+
+```
+
+
+##### Country-level results: India
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of rice prices for vendors selling both organic and conventional
+wsr_rice_prices_data_india <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
+  filter(rice_price_both == 1) %>%
+  filter(country == "India")
+
+# Overall Wilcoxon Signed Rank test
+wsr_india_test <- wilcox.test(wsr_rice_prices_data_india$rice_price_org_kg_usd,
+                            wsr_rice_prices_data_india$rice_price_conv_kg_usd,
+                            alternative = "greater", paired = TRUE)
+
+wsr_india_p_value_one_tailed <- wsr_india_test$p.value / 2
+
+print(wsr_india_test)
+cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_india_p_value_one_tailed, "\n")
+```
+
+##### Country-level results: UK
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of rice prices for vendors selling both organic and conventional
+wsr_rice_prices_data_uk <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
+  filter(rice_price_both == 1) %>%
+  filter(country == "UK")
+
+# Overall Wilcoxon Signed Rank test
+wsr_uk_test <- wilcox.test(wsr_rice_prices_data_uk$rice_price_org_kg_usd,
+                            wsr_rice_prices_data_uk$rice_price_conv_kg_usd,
+                            alternative = "greater", paired = TRUE)
+
+wsr_uk_p_value_one_tailed <- wsr_uk_test$p.value / 2
+
+print(wsr_uk_test)
+cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_uk_p_value_one_tailed, "\n")
+```
+
+
+#### Table S1
+
+##### City-level
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Calculate number of organic and conventional vendors, median, IQR, min and max price
+# Filtered on vendors with both organic and conventional rice
+tabs1_city_data <- rice_prices_data %>%
+  filter(rice_price_both == 1) %>%
+  group_by(country, city) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg_usd)),
+    median_org_rice = median(rice_price_org_kg_usd, na.rm = TRUE),
+    iqr_org_rice = IQR(rice_price_org_kg_usd, na.rm = TRUE),
+    min_org_rice = min(rice_price_org_kg_usd, na.rm = TRUE),
+    max_org_rice = max(rice_price_org_kg_usd, na.rm = TRUE),
+    median_conv_rice = median(rice_price_conv_kg_usd, na.rm = TRUE),
+    iqr_conv_rice = IQR(rice_price_conv_kg_usd, na.rm = TRUE),
+    min_conv_rice = min(rice_price_conv_kg_usd, na.rm = TRUE),
+    max_conv_rice = max(rice_price_conv_kg_usd, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+# Create the gt table
+tabs1_city <- tabs1_city_data %>%
+  gt(rowname_col = "city", groupname_col = c("country")) %>%
+  cols_label(
+    country = "Country",
+    city = "City",
+    count_org_rice_vendors = "Organic sample size (n)",
+    count_conv_rice_vendors = "Conventional sample size (n)",
+    median_org_rice = "Organic median (IQR), min-max (US$)",
+    iqr_org_rice = " ",
+    min_org_rice = " ",
+    max_org_rice = " ",
+    median_conv_rice = "Conventional median (IQR), min-max (US$)",
+    iqr_conv_rice = " ",
+    min_conv_rice = " ",
+    max_conv_rice = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_org_rice", "iqr_org_rice", "min_org_rice", "max_org_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_conv_rice", "iqr_conv_rice", "min_conv_rice", "max_conv_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+  fmt_number(
+    columns = vars(median_org_rice, iqr_org_rice, min_org_rice, max_org_rice,
+                   median_conv_rice, iqr_conv_rice, min_conv_rice, max_conv_rice),
+    decimals = 2
+  ) %>%
+  summary_rows(
+    groups = everything(),
+    columns = vars(count_org_rice_vendors,count_conv_rice_vendors),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0,
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tabs1_city
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table S1 - city")
+writeData(table_outputs, sheet = "Table S1 - city", x = tabs1_city)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+##### Country-level
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Calculate number of organic and conventional vendors, median, IQR, min and max price
+# Filtered on vendors with both organic and conventional rice
+tabs1_country_data <- rice_prices_data %>%
+  filter(rice_price_both == 1) %>%
+  group_by(country) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg_usd)),
+    median_org_rice = median(rice_price_org_kg_usd, na.rm = TRUE),
+    iqr_org_rice = IQR(rice_price_org_kg_usd, na.rm = TRUE),
+    min_org_rice = min(rice_price_org_kg_usd, na.rm = TRUE),
+    max_org_rice = max(rice_price_org_kg_usd, na.rm = TRUE),
+    median_conv_rice = median(rice_price_conv_kg_usd, na.rm = TRUE),
+    iqr_conv_rice = IQR(rice_price_conv_kg_usd, na.rm = TRUE),
+    min_conv_rice = min(rice_price_conv_kg_usd, na.rm = TRUE),
+    max_conv_rice = max(rice_price_conv_kg_usd, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+tabs1_country <- tabs1_country_data %>%
+  gt() %>%
+  cols_label(
+    country = "Country",
+    count_org_rice_vendors = "Organic sample size (n)",
+    count_conv_rice_vendors = "Conventional sample size (n)",
+    median_org_rice = "Organic median (IQR), min-max (US$)",
+    iqr_org_rice = " ",
+    min_org_rice = " ",
+    max_org_rice = " ",
+    median_conv_rice = "Conventional median (IQR), min-max (US$)",
+    iqr_conv_rice = " ",
+    min_conv_rice = " ",
+    max_conv_rice = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_org_rice", "iqr_org_rice", "min_org_rice", "max_org_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_conv_rice", "iqr_conv_rice", "min_conv_rice", "max_conv_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+  fmt_number(
+    columns = vars(median_org_rice, iqr_org_rice, min_org_rice, max_org_rice,
+                   median_conv_rice, iqr_conv_rice, min_conv_rice, max_conv_rice),
+    decimals = 2
+  ) %>%
+  grand_summary_rows(
+    columns = vars(count_org_rice_vendors,count_conv_rice_vendors),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0,
+  ) %>%
+  sub_missing() 
+
+# Display the table
+tabs1_country
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table S1 - country")
+writeData(table_outputs, sheet = "Table S1 - country", x = tabs1_country)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+
+```
+
+
+##### Overall
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Calculate number of organic and conventional vendors, median, IQR, min and max price
+# Filtered on vendors with both organic and conventional rice
+tabs1_overall_data <- rice_prices_data %>%
+  filter(rice_price_both == 1) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg_usd)),
+    median_org_rice = median(rice_price_org_kg_usd, na.rm = TRUE),
+    iqr_org_rice = IQR(rice_price_org_kg_usd, na.rm = TRUE),
+    min_org_rice = min(rice_price_org_kg_usd, na.rm = TRUE),
+    max_org_rice = max(rice_price_org_kg_usd, na.rm = TRUE),
+    median_conv_rice = median(rice_price_conv_kg_usd, na.rm = TRUE),
+    iqr_conv_rice = IQR(rice_price_conv_kg_usd, na.rm = TRUE),
+    min_conv_rice = min(rice_price_conv_kg_usd, na.rm = TRUE),
+    max_conv_rice = max(rice_price_conv_kg_usd, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+tabs1_overall <- tabs1_overall_data %>%
+  gt() %>%
+  cols_label(
+    count_org_rice_vendors = "Organic sample size (n)",
+    count_conv_rice_vendors = "Conventional sample size (n)",
+    median_org_rice = "Organic median (IQR), min-max (US$)",
+    iqr_org_rice = " ",
+    min_org_rice = " ",
+    max_org_rice = " ",
+    median_conv_rice = "Conventional median (IQR), min-max (US$)",
+    iqr_conv_rice = " ",
+    min_conv_rice = " ",
+    max_conv_rice = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_org_rice", "iqr_org_rice", "min_org_rice", "max_org_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_conv_rice", "iqr_conv_rice", "min_conv_rice", "max_conv_rice"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+  fmt_number(
+    columns = vars(median_org_rice, iqr_org_rice, min_org_rice, max_org_rice,
+                   median_conv_rice, iqr_conv_rice, min_conv_rice, max_conv_rice),
+    decimals = 2
+  ) %>%
+  sub_missing() 
+
+# Display the table
+tabs1_overall
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table S1 - overall")
+writeData(table_outputs, sheet = "Table S1 - overall", x = tabs1_overall)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+
+```
+
+## 3. What are the marketing characteristics of organic food in urban food environments? How does this vary across different geographic and socioeconomic contexts? 
+
+### Terminologies - Table 6
+
+##### Overall
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Note: If I want to summarise just the number of vendors using the term,
+# the code for summing should be >0
+
+# Create new instance of dataset for Table 6
+tab6_data <- data_clean
+
+
+## OVERALL----
+
+# PRODUCT-LEVEL SUMMARY
+
+# Vector of product abbreviations
+products <- c("tom", "leaf", "ban", "man", "fj", "milk", "cof", "tea", "mill", "chic", "daal", "wht", "rice", "nut")
+
+# Define a function to summarize data for a given product and dataset
+tab6_product_fn <- function(product) {
+  tab6_data %>%
+    summarise(
+      org_count = sum(get(paste0(product, "_org")) == "Yes", na.rm = TRUE),
+      term_organic_count = sum(get(paste0(product, "_org_terms_Organic")) == 1, na.rm = TRUE),
+      term_organic_perc = term_organic_count / org_count,
+      term_natural_count = sum(get(paste0(product, "_org_terms_Natural")) == 1, na.rm = TRUE),
+      term_natural_perc = term_natural_count / org_count,
+      term_chemfree_count = sum(get(paste0(product, "_org_terms_Chemical-free")) == 1, na.rm = TRUE),
+      term_chemfree_perc = term_chemfree_count / org_count,
+      term_pestfree_count = sum(get(paste0(product, "_org_terms_Pesticide-free")) == 1, na.rm = TRUE),
+      term_pestfree_perc = term_pestfree_count / org_count,
+      term_bioprod_count = sum(get(paste0(product, "_org_terms_Bioproducts")) == 1, na.rm = TRUE),
+      term_bioprod_perc = term_bioprod_count / org_count,
+      term_bio_count = sum(get(paste0(product, "_org_terms_Bio")) == 1, na.rm = TRUE),
+      term_bio_perc = term_bio_count / org_count,
+      term_eco_count = sum(get(paste0(product, "_org_terms_Eco")) == 1, na.rm = TRUE),
+      term_eco_perc = term_eco_count / org_count,
+      term_gmo_count = sum(get(paste0(product, "_org_terms_GMO-free")) == 1, na.rm = TRUE),
+      term_gmo_perc = term_gmo_count / org_count,
+      #term_dontknow_count = sum(get(paste0(product, "_org_terms_Don't know")) == 1, na.rm = TRUE),
+      #term_dontknow_perc = term_dontknow_count / org_count
+    ) %>%
+    mutate(
+      product = product,
+      category = case_when(product %in% c("fj", "milk", "cof", "tea") ~ "beverages",
+                           product %in% c("tom", "leaf", "ban", "man") ~ "fresh produce",
+                           TRUE ~ "other")
+      ) %>% 
+    select(category, product, everything())
+}
+
+# Apply the function to each product and combine the results
+product_summary_list <- lapply(products, tab6_product_fn)
+tab6_product_summary <- bind_rows(product_summary_list)
+
+## CATEGORY-LEVEL SUMMARY
+
+tab6_category_summary <- tab6_product_summary %>%
+  group_by(category) %>%
+  summarise(
+    org_count = sum(org_count, na.rm = TRUE),
+    term_organic_count = sum(term_organic_count, na.rm = TRUE),
+    term_organic_perc = mean(term_organic_perc, na.rm = TRUE),
+    term_natural_count = sum(term_natural_count, na.rm = TRUE),
+    term_natural_perc = mean(term_natural_perc, na.rm = TRUE),
+    term_chemfree_count = sum(term_chemfree_count, na.rm = TRUE),
+    term_chemfree_perc = mean(term_chemfree_perc, na.rm = TRUE),
+    term_pestfree_count = sum(term_pestfree_count, na.rm = TRUE),
+    term_pestfree_perc = mean(term_pestfree_perc, na.rm = TRUE),
+    term_bioprod_count = sum(term_bioprod_count, na.rm = TRUE),
+    term_bioprod_perc = mean(term_bioprod_perc, na.rm = TRUE),
+    term_bio_count = sum(term_bio_count, na.rm = TRUE),
+    term_bio_perc = mean(term_bio_perc, na.rm = TRUE),
+    term_eco_count = sum(term_eco_count, na.rm = TRUE),
+    term_eco_perc = mean(term_eco_perc, na.rm = TRUE),
+    term_gmo_count = sum(term_gmo_count, na.rm = TRUE),
+    term_gmo_perc = mean(term_gmo_perc, na.rm = TRUE),
+    #term_dontknow_count = sum(term_dontknow_count, na.rm = TRUE),
+    #term_dontknow_perc = mean(term_dontknow_perc, na.rm = TRUE)
+  )
+
+
+# Create gt table
+tab6_categories_overall <- tab6_category_summary %>%
+  gt() %>%
+  cols_label(
+    category = "Category",
+    org_count = "Total organic products",
+    term_organic_count = "Organic, n(%)",
+    term_organic_perc = " ",
+    term_natural_count = "Natural, n(%)",
+    term_natural_perc = " ",
+    term_chemfree_count = "Chemical-free, n(%)",
+    term_chemfree_perc = " ",
+    term_pestfree_count = "Pesticide-free, n(%)",
+    term_pestfree_perc = " ",
+    term_bioprod_count = "Bioproduct, n(%)",
+    term_bioprod_perc = " ",
+    term_bio_count = "Bio, n(%)",
+    term_bio_perc = " ",
+    term_eco_count = "Eco, n(%)",
+    term_eco_perc = " ",
+    term_gmo_count = "GMO-free, n(%)",
+    term_gmo_perc = " ",
+    #term_dontknow_count = "Don't know, n(%)",
+    #term_dontknow_perc = " ",
+  ) %>%
+  cols_merge(
+    columns = c("term_organic_count", "term_organic_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_natural_count", "term_natural_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_chemfree_count", "term_chemfree_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_pestfree_count", "term_pestfree_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_bioprod_count", "term_bioprod_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_bio_count", "term_bio_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_eco_count", "term_eco_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_gmo_count", "term_gmo_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  #cols_merge(
+  #  columns = c("term_dontknow_count", "term_dontknow_perc"),
+  #  pattern = "{1} ({2})"
+  #) %>%
+  fmt_percent(
+    columns = c(term_organic_perc, term_natural_perc, term_chemfree_perc,
+                   term_pestfree_perc, term_bioprod_perc, term_bio_perc,
+                   term_eco_perc, term_gmo_perc),
+    decimals = 0
+  ) %>%
+  tab_header(
+    title = "Table 6 - Overall"
+  ) %>%
+  grand_summary_rows(
+    columns = c(org_count, term_organic_count, term_natural_count, term_chemfree_count,
+                   term_pestfree_count, term_bioprod_count, term_bio_count,
+                   term_eco_count, term_gmo_count),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0,
+  ) %>%
+  sub_missing() 
+
+# Display the table
+tab6_categories_overall
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 6 - overall")
+writeData(table_outputs, sheet = "Table 6 - overall", x = tab6_categories_overall)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+
+##### Brazil
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Create new instance of dataset for Table 6 - Brazil
+tab6_data_brazil <- tab6_data %>%
+  filter(country == "Brazil")
+
+# PRODUCT-LEVEL SUMMARY
+
+# Vector of product abbreviations
+products <- c("tom", "leaf", "ban", "man", "fj", "milk", "cof", "tea", "mill", "chic", "daal", "wht", "rice", "nut")
+
+# Define a function to summarize data for a given product and dataset
+tab6_product_fn_brazil <- function(product) {
+  tab6_data_brazil %>%
+    summarise(
+      org_count = sum(get(paste0(product, "_org")) == "Yes", na.rm = TRUE),
+      term_organic_count = sum(get(paste0(product, "_org_terms_Organic")) == 1, na.rm = TRUE),
+      term_organic_perc = term_organic_count / org_count,
+      term_natural_count = sum(get(paste0(product, "_org_terms_Natural")) == 1, na.rm = TRUE),
+      term_natural_perc = term_natural_count / org_count,
+      term_chemfree_count = sum(get(paste0(product, "_org_terms_Chemical-free")) == 1, na.rm = TRUE),
+      term_chemfree_perc = term_chemfree_count / org_count,
+      term_pestfree_count = sum(get(paste0(product, "_org_terms_Pesticide-free")) == 1, na.rm = TRUE),
+      term_pestfree_perc = term_pestfree_count / org_count,
+      term_bioprod_count = sum(get(paste0(product, "_org_terms_Bioproducts")) == 1, na.rm = TRUE),
+      term_bioprod_perc = term_bioprod_count / org_count,
+      term_bio_count = sum(get(paste0(product, "_org_terms_Bio")) == 1, na.rm = TRUE),
+      term_bio_perc = term_bio_count / org_count,
+      term_eco_count = sum(get(paste0(product, "_org_terms_Eco")) == 1, na.rm = TRUE),
+      term_eco_perc = term_eco_count / org_count,
+      term_gmo_count = sum(get(paste0(product, "_org_terms_GMO-free")) == 1, na.rm = TRUE),
+      term_gmo_perc = term_gmo_count / org_count,
+      #term_dontknow_count = sum(get(paste0(product, "_org_terms_Don't know")) == 1, na.rm = TRUE),
+      #term_dontknow_perc = term_dontknow_count / org_count
+    ) %>%
+    mutate(
+      product = product,
+      category = case_when(product %in% c("fj", "milk", "cof", "tea") ~ "beverages",
+                           product %in% c("tom", "leaf", "ban", "man") ~ "fresh produce",
+                           TRUE ~ "other")
+    ) %>% 
+    select(category, product, everything())
+}
+
+# Apply the function to each product and combine the results
+product_summary_list_brazil <- lapply(products, tab6_product_fn_brazil)
+tab6_product_summary_brazil <- bind_rows(product_summary_list_brazil)
+
+## CATEGORY-LEVEL SUMMARY
+
+tab6_category_summary_brazil <- tab6_product_summary_brazil %>%
+  group_by(category) %>%
+  summarise(
+    org_count = sum(org_count, na.rm = TRUE),
+    term_organic_count = sum(term_organic_count, na.rm = TRUE),
+    term_organic_perc = mean(term_organic_perc, na.rm = TRUE),
+    term_natural_count = sum(term_natural_count, na.rm = TRUE),
+    term_natural_perc = mean(term_natural_perc, na.rm = TRUE),
+    term_chemfree_count = sum(term_chemfree_count, na.rm = TRUE),
+    term_chemfree_perc = mean(term_chemfree_perc, na.rm = TRUE),
+    term_pestfree_count = sum(term_pestfree_count, na.rm = TRUE),
+    term_pestfree_perc = mean(term_pestfree_perc, na.rm = TRUE),
+    term_bioprod_count = sum(term_bioprod_count, na.rm = TRUE),
+    term_bioprod_perc = mean(term_bioprod_perc, na.rm = TRUE),
+    term_bio_count = sum(term_bio_count, na.rm = TRUE),
+    term_bio_perc = mean(term_bio_perc, na.rm = TRUE),
+    term_eco_count = sum(term_eco_count, na.rm = TRUE),
+    term_eco_perc = mean(term_eco_perc, na.rm = TRUE),
+    term_gmo_count = sum(term_gmo_count, na.rm = TRUE),
+    term_gmo_perc = mean(term_gmo_perc, na.rm = TRUE),
+    #term_dontknow_count = sum(term_dontknow_count, na.rm = TRUE),
+    #term_dontknow_perc = mean(term_dontknow_perc, na.rm = TRUE)
+  )
+
+
+# Create gt table
+tab6_categories_brazil <- tab6_category_summary_brazil %>%
+  gt() %>%
+  cols_label(
+    category = "Category",
+    org_count = "Total organic products",
+    term_organic_count = "Organic, n(%)",
+    term_organic_perc = " ",
+    term_natural_count = "Natural, n(%)",
+    term_natural_perc = " ",
+    term_chemfree_count = "Chemical-free, n(%)",
+    term_chemfree_perc = " ",
+    term_pestfree_count = "Pesticide-free, n(%)",
+    term_pestfree_perc = " ",
+    term_bioprod_count = "Bioproduct, n(%)",
+    term_bioprod_perc = " ",
+    term_bio_count = "Bio, n(%)",
+    term_bio_perc = " ",
+    term_eco_count = "Eco, n(%)",
+    term_eco_perc = " ",
+    term_gmo_count = "GMO-free, n(%)",
+    term_gmo_perc = " ",
+    #term_dontknow_count = "Don't know, n(%)",
+    #term_dontknow_perc = " ",
+  ) %>%
+  cols_merge(
+    columns = c("term_organic_count", "term_organic_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_natural_count", "term_natural_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_chemfree_count", "term_chemfree_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_pestfree_count", "term_pestfree_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_bioprod_count", "term_bioprod_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_bio_count", "term_bio_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_eco_count", "term_eco_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_gmo_count", "term_gmo_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  #cols_merge(
+  #  columns = c("term_dontknow_count", "term_dontknow_perc"),
+  #  pattern = "{1} ({2})"
+  #) %>%
+  fmt_percent(
+    columns = c(term_organic_perc, term_natural_perc, term_chemfree_perc,
+                term_pestfree_perc, term_bioprod_perc, term_bio_perc,
+                term_eco_perc, term_gmo_perc),
+    decimals = 0
+  ) %>%
+  tab_header(
+    title = "Table 6 - Brazil"
+  ) %>%
+  grand_summary_rows(
+    columns = c(org_count, term_organic_count, term_natural_count, term_chemfree_count,
+                term_pestfree_count, term_bioprod_count, term_bio_count,
+                term_eco_count, term_gmo_count),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0,
+  ) %>%
+  sub_missing() 
+
+# Display the table
+tab6_categories_brazil
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 6 - Brazil")
+writeData(table_outputs, sheet = "Table 6 - Brazil", x = tab6_categories_brazil)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+
+##### India
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Create new instance of dataset for Table 6 - India
+tab6_data_india <- tab6_data %>%
+  filter(country == "India")
+
+# PRODUCT-LEVEL SUMMARY
+
+# Vector of product abbreviations
+products <- c("tom", "leaf", "ban", "man", "fj", "milk", "cof", "tea", "mill", "chic", "daal", "wht", "rice", "nut")
+
+# Define a function to summarize data for a given product and dataset
+tab6_product_fn_india <- function(product) {
+  tab6_data_india %>%
+    summarise(
+      org_count = sum(get(paste0(product, "_org")) == "Yes", na.rm = TRUE),
+      term_organic_count = sum(get(paste0(product, "_org_terms_Organic")) == 1, na.rm = TRUE),
+      term_organic_perc = term_organic_count / org_count,
+      term_natural_count = sum(get(paste0(product, "_org_terms_Natural")) == 1, na.rm = TRUE),
+      term_natural_perc = term_natural_count / org_count,
+      term_chemfree_count = sum(get(paste0(product, "_org_terms_Chemical-free")) == 1, na.rm = TRUE),
+      term_chemfree_perc = term_chemfree_count / org_count,
+      term_pestfree_count = sum(get(paste0(product, "_org_terms_Pesticide-free")) == 1, na.rm = TRUE),
+      term_pestfree_perc = term_pestfree_count / org_count,
+      term_bioprod_count = sum(get(paste0(product, "_org_terms_Bioproducts")) == 1, na.rm = TRUE),
+      term_bioprod_perc = term_bioprod_count / org_count,
+      term_bio_count = sum(get(paste0(product, "_org_terms_Bio")) == 1, na.rm = TRUE),
+      term_bio_perc = term_bio_count / org_count,
+      term_eco_count = sum(get(paste0(product, "_org_terms_Eco")) == 1, na.rm = TRUE),
+      term_eco_perc = term_eco_count / org_count,
+      term_gmo_count = sum(get(paste0(product, "_org_terms_GMO-free")) == 1, na.rm = TRUE),
+      term_gmo_perc = term_gmo_count / org_count,
+      #term_dontknow_count = sum(get(paste0(product, "_org_terms_Don't know")) == 1, na.rm = TRUE),
+      #term_dontknow_perc = term_dontknow_count / org_count
+    ) %>%
+    mutate(
+      product = product,
+      category = case_when(product %in% c("fj", "milk", "cof", "tea") ~ "beverages",
+                           product %in% c("tom", "leaf", "ban", "man") ~ "fresh produce",
+                           TRUE ~ "other")
+    ) %>% 
+    select(category, product, everything())
+}
+
+# Apply the function to each product and combine the results
+product_summary_list_india <- lapply(products, tab6_product_fn_india)
+tab6_product_summary_india <- bind_rows(product_summary_list_india)
+
+## CATEGORY-LEVEL SUMMARY
+
+tab6_category_summary_india <- tab6_product_summary_india %>%
+  group_by(category) %>%
+  summarise(
+    org_count = sum(org_count, na.rm = TRUE),
+    term_organic_count = sum(term_organic_count, na.rm = TRUE),
+    term_organic_perc = mean(term_organic_perc, na.rm = TRUE),
+    term_natural_count = sum(term_natural_count, na.rm = TRUE),
+    term_natural_perc = mean(term_natural_perc, na.rm = TRUE),
+    term_chemfree_count = sum(term_chemfree_count, na.rm = TRUE),
+    term_chemfree_perc = mean(term_chemfree_perc, na.rm = TRUE),
+    term_pestfree_count = sum(term_pestfree_count, na.rm = TRUE),
+    term_pestfree_perc = mean(term_pestfree_perc, na.rm = TRUE),
+    term_bioprod_count = sum(term_bioprod_count, na.rm = TRUE),
+    term_bioprod_perc = mean(term_bioprod_perc, na.rm = TRUE),
+    term_bio_count = sum(term_bio_count, na.rm = TRUE),
+    term_bio_perc = mean(term_bio_perc, na.rm = TRUE),
+    term_eco_count = sum(term_eco_count, na.rm = TRUE),
+    term_eco_perc = mean(term_eco_perc, na.rm = TRUE),
+    term_gmo_count = sum(term_gmo_count, na.rm = TRUE),
+    term_gmo_perc = mean(term_gmo_perc, na.rm = TRUE),
+    #term_dontknow_count = sum(term_dontknow_count, na.rm = TRUE),
+    #term_dontknow_perc = mean(term_dontknow_perc, na.rm = TRUE)
+  )
+
+
+# Create gt table
+tab6_categories_india <- tab6_category_summary_india %>%
+  gt() %>%
+  cols_label(
+    category = "Category",
+    org_count = "Total organic products",
+    term_organic_count = "Organic, n(%)",
+    term_organic_perc = " ",
+    term_natural_count = "Natural, n(%)",
+    term_natural_perc = " ",
+    term_chemfree_count = "Chemical-free, n(%)",
+    term_chemfree_perc = " ",
+    term_pestfree_count = "Pesticide-free, n(%)",
+    term_pestfree_perc = " ",
+    term_bioprod_count = "Bioproduct, n(%)",
+    term_bioprod_perc = " ",
+    term_bio_count = "Bio, n(%)",
+    term_bio_perc = " ",
+    term_eco_count = "Eco, n(%)",
+    term_eco_perc = " ",
+    term_gmo_count = "GMO-free, n(%)",
+    term_gmo_perc = " ",
+    #term_dontknow_count = "Don't know, n(%)",
+    #term_dontknow_perc = " ",
+  ) %>%
+  cols_merge(
+    columns = c("term_organic_count", "term_organic_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_natural_count", "term_natural_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_chemfree_count", "term_chemfree_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_pestfree_count", "term_pestfree_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_bioprod_count", "term_bioprod_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_bio_count", "term_bio_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_eco_count", "term_eco_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_gmo_count", "term_gmo_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  #cols_merge(
+  #  columns = c("term_dontknow_count", "term_dontknow_perc"),
+  #  pattern = "{1} ({2})"
+  #) %>%
+  fmt_percent(
+    columns = c(term_organic_perc, term_natural_perc, term_chemfree_perc,
+                term_pestfree_perc, term_bioprod_perc, term_bio_perc,
+                term_eco_perc, term_gmo_perc),
+    decimals = 0
+  ) %>%
+  tab_header(
+    title = "Table 6 - India"
+  ) %>%
+  grand_summary_rows(
+    columns = c(org_count, term_organic_count, term_natural_count, term_chemfree_count,
+                term_pestfree_count, term_bioprod_count, term_bio_count,
+                term_eco_count, term_gmo_count),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0,
+  ) %>%
+  sub_missing() 
+
+# Display the table
+tab6_categories_india
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 6 - India")
+writeData(table_outputs, sheet = "Table 6 - India", x = tab6_categories_india)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+
+
+##### UK
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Create new instance of dataset for Table 6 - UK
+tab6_data_uk <- tab6_data %>%
+  filter(country == "UK")
+
+# PRODUCT-LEVEL SUMMARY
+
+# Vector of product abbreviations
+products <- c("tom", "leaf", "ban", "man", "fj", "milk", "cof", "tea", "mill", "chic", "daal", "wht", "rice", "nut")
+
+# Define a function to summarize data for a given product and dataset
+tab6_product_fn_uk <- function(product) {
+  tab6_data_uk %>%
+    summarise(
+      org_count = sum(get(paste0(product, "_org")) == "Yes", na.rm = TRUE),
+      term_organic_count = sum(get(paste0(product, "_org_terms_Organic")) == 1, na.rm = TRUE),
+      term_organic_perc = term_organic_count / org_count,
+      term_natural_count = sum(get(paste0(product, "_org_terms_Natural")) == 1, na.rm = TRUE),
+      term_natural_perc = term_natural_count / org_count,
+      term_chemfree_count = sum(get(paste0(product, "_org_terms_Chemical-free")) == 1, na.rm = TRUE),
+      term_chemfree_perc = term_chemfree_count / org_count,
+      term_pestfree_count = sum(get(paste0(product, "_org_terms_Pesticide-free")) == 1, na.rm = TRUE),
+      term_pestfree_perc = term_pestfree_count / org_count,
+      term_bioprod_count = sum(get(paste0(product, "_org_terms_Bioproducts")) == 1, na.rm = TRUE),
+      term_bioprod_perc = term_bioprod_count / org_count,
+      term_bio_count = sum(get(paste0(product, "_org_terms_Bio")) == 1, na.rm = TRUE),
+      term_bio_perc = term_bio_count / org_count,
+      term_eco_count = sum(get(paste0(product, "_org_terms_Eco")) == 1, na.rm = TRUE),
+      term_eco_perc = term_eco_count / org_count,
+      term_gmo_count = sum(get(paste0(product, "_org_terms_GMO-free")) == 1, na.rm = TRUE),
+      term_gmo_perc = term_gmo_count / org_count,
+      #term_dontknow_count = sum(get(paste0(product, "_org_terms_Don't know")) == 1, na.rm = TRUE),
+      #term_dontknow_perc = term_dontknow_count / org_count
+    ) %>%
+    mutate(
+      product = product,
+      category = case_when(product %in% c("fj", "milk", "cof", "tea") ~ "beverages",
+                           product %in% c("tom", "leaf", "ban", "man") ~ "fresh produce",
+                           TRUE ~ "other")
+    ) %>% 
+    select(category, product, everything())
+}
+
+# Apply the function to each product and combine the results
+product_summary_list_uk <- lapply(products, tab6_product_fn_uk)
+tab6_product_summary_uk <- bind_rows(product_summary_list_uk)
+
+## CATEGORY-LEVEL SUMMARY
+
+tab6_category_summary_uk <- tab6_product_summary_uk %>%
+  group_by(category) %>%
+  summarise(
+    org_count = sum(org_count, na.rm = TRUE),
+    term_organic_count = sum(term_organic_count, na.rm = TRUE),
+    term_organic_perc = mean(term_organic_perc, na.rm = TRUE),
+    term_natural_count = sum(term_natural_count, na.rm = TRUE),
+    term_natural_perc = mean(term_natural_perc, na.rm = TRUE),
+    term_chemfree_count = sum(term_chemfree_count, na.rm = TRUE),
+    term_chemfree_perc = mean(term_chemfree_perc, na.rm = TRUE),
+    term_pestfree_count = sum(term_pestfree_count, na.rm = TRUE),
+    term_pestfree_perc = mean(term_pestfree_perc, na.rm = TRUE),
+    term_bioprod_count = sum(term_bioprod_count, na.rm = TRUE),
+    term_bioprod_perc = mean(term_bioprod_perc, na.rm = TRUE),
+    term_bio_count = sum(term_bio_count, na.rm = TRUE),
+    term_bio_perc = mean(term_bio_perc, na.rm = TRUE),
+    term_eco_count = sum(term_eco_count, na.rm = TRUE),
+    term_eco_perc = mean(term_eco_perc, na.rm = TRUE),
+    term_gmo_count = sum(term_gmo_count, na.rm = TRUE),
+    term_gmo_perc = mean(term_gmo_perc, na.rm = TRUE),
+    #term_dontknow_count = sum(term_dontknow_count, na.rm = TRUE),
+    #term_dontknow_perc = mean(term_dontknow_perc, na.rm = TRUE)
+  )
+
+
+# Create gt table
+tab6_categories_uk <- tab6_category_summary_uk %>%
+  gt() %>%
+  cols_label(
+    category = "Category",
+    org_count = "Total organic products",
+    term_organic_count = "Organic, n(%)",
+    term_organic_perc = " ",
+    term_natural_count = "Natural, n(%)",
+    term_natural_perc = " ",
+    term_chemfree_count = "Chemical-free, n(%)",
+    term_chemfree_perc = " ",
+    term_pestfree_count = "Pesticide-free, n(%)",
+    term_pestfree_perc = " ",
+    term_bioprod_count = "Bioproduct, n(%)",
+    term_bioprod_perc = " ",
+    term_bio_count = "Bio, n(%)",
+    term_bio_perc = " ",
+    term_eco_count = "Eco, n(%)",
+    term_eco_perc = " ",
+    term_gmo_count = "GMO-free, n(%)",
+    term_gmo_perc = " ",
+    #term_dontknow_count = "Don't know, n(%)",
+    #term_dontknow_perc = " ",
+  ) %>%
+  cols_merge(
+    columns = c("term_organic_count", "term_organic_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_natural_count", "term_natural_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_chemfree_count", "term_chemfree_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_pestfree_count", "term_pestfree_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_bioprod_count", "term_bioprod_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_bio_count", "term_bio_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_eco_count", "term_eco_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  cols_merge(
+    columns = c("term_gmo_count", "term_gmo_perc"),
+    pattern = "{1} ({2})"
+  ) %>%
+  #cols_merge(
+  #  columns = c("term_dontknow_count", "term_dontknow_perc"),
+  #  pattern = "{1} ({2})"
+  #) %>%
+  fmt_percent(
+    columns = c(term_organic_perc, term_natural_perc, term_chemfree_perc,
+                term_pestfree_perc, term_bioprod_perc, term_bio_perc,
+                term_eco_perc, term_gmo_perc),
+    decimals = 0
+  ) %>%
+  tab_header(
+    title = "Table 6 - UK"
+  ) %>%
+  grand_summary_rows(
+    columns = c(org_count, term_organic_count, term_natural_count, term_chemfree_count,
+                term_pestfree_count, term_bioprod_count, term_bio_count,
+                term_eco_count, term_gmo_count),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0,
+  ) %>%
+  sub_missing() 
+
+# Display the table
+tab6_categories_uk
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 6 - UK")
+writeData(table_outputs, sheet = "Table 6 - UK", x = tab6_categories_uk)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+
+
+### Brands - Table 7
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# vector with brand names variables
+vector_brandnames <- data_clean %>% 
+  select(contains("brand_new")) %>%
+  names()
+
+table7 <- left_join(
+  # number of brands in each sentinel food
+  data_clean %>%
+    select(country, vector_brandnames) %>%
+    pivot_longer(cols = c(vector_brandnames), 
+                 names_to = "food", 
+                 values_to = "brand") %>%
+    filter(!is.na(brand)) %>%
+    group_by(country, food) %>%
+    summarise(n_brands = n()),
+  
+  # top three brands for each sentinel food
+  data_clean %>%
+    select(country, vector_brandnames) %>%
+    pivot_longer(cols = c(vector_brandnames), 
+                 names_to = "food", 
+                 values_to = "brand") %>%
+    filter(!is.na(brand)) %>%
+    group_by(country, food) %>%
+    count(brand) %>%
+    arrange(desc(n), .by_group = TRUE) %>%
+    slice(1:3) %>%
+    mutate(rank = row_number())
+) %>%
+  # adjust variables
+  mutate(food = paste(food, rank),
+         perc = round(n/n_brands*100,2),
+         brand = paste0(brand, " (", n, ", ", perc, "%)")) %>%
+  select(country, food, brand) %>%
+  # reshape table to match the analysis plan
+  pivot_wider(names_from = country,
+              values_from = brand)
+
+kable(table7)
+```
+
+
+
+### Certification - Table 8
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# values per country
+country <- data_clean %>%
+  group_by(country) %>%
+  summarise(Certified = sum(cert_count),
+            Total = sum(org_foods_count)) %>%
+  mutate(Proportion = round(Certified/Total*100, 2)) %>%
+  rename()
+
+# values per store type
+vendortype <- data_clean %>%
+  group_by(vendor_type)%>%
+  summarise(Certified = sum(cert_count),
+            Total = sum(org_foods_count)) %>%
+  mutate(Proportion = round(Certified/Total*100, 2))
+
+
+# values per food
+products <- c("tom", "leaf", "ban", "man", "fj", "milk", "cof", "tea", "mill", "chic", "daal", "wht", "rice", "nut")
+vector_organics <- paste0(products, "_org")
+vector_cert <- paste0(products, "_cert")
+
+
+sentinelfood <- cbind(
+  # count certifications
+  data_clean %>%
+    select(id, country, all_of(vector_cert)) %>%
+    pivot_longer(cols = c(vector_cert), 
+                 names_to = "food", 
+                 values_to = c("certified")) %>%
+    group_by(food) %>%
+    summarise(Certified = sum(certified >= 1, na.rm=T)),
+  
+  # count all organics
+  data_clean %>%
+    select(id, country, all_of(vector_organics)) %>%
+    pivot_longer(cols = c(vector_organics), 
+                 names_to = "food", 
+                 values_to = c("total")) %>%
+    group_by(food) %>%
+    summarise(Total = sum(total == "Yes", na.rm=T)) %>%
+    select(-food)
+) %>%
+  mutate(Proportion = round(Certified/Total*100, 2))
+
+kable(country)
+kable(vendortype)
+kable(sentinelfood)
+```
+
+
+
+
+
+
+
+
+
+

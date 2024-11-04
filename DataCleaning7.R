@@ -1385,34 +1385,48 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
   rice_prices_data <- rice_prices_data %>%
     mutate(rice_price_both = ifelse(!is.na(rice_price_conv_kg_usd) & !is.na(rice_price_org_kg_usd), 1, 0))
       
-  # Create org_foods_count variable to count how many sentinel foods a vendor sells an organic version of
-  
-  org_foods_vector <- c("tom_org", "leaf_org", "ban_org", "man_org",
+  # Create org_products_count variable to count how many sentinel products a vendor sells an organic version of
+      
+  org_products_vector <- c("tom_org", "leaf_org", "ban_org", "man_org",
                      "fj_org", "milk_org", "cof_org", "tea_org",
                      "mill_org", "chic_org", "daal_org", "wht_org",
                      "rice_org", "nut_org")
   
   combined_data <- combined_data %>%
-        mutate(org_foods_count = rowSums(select(., all_of(org_foods_vector)) == "Yes", na.rm = TRUE))
-               
-               
-                 case_when(
-      org_vendor == 1 ~ rowSums(select(., all_of(org_foods_vector)) == "Yes", na.rm = TRUE), # if organic vendor, sum
-      TRUE ~ NA_real_
-      ))
-    
+        mutate(org_products_count = rowSums(select(., all_of(org_products_vector)) == "Yes", na.rm = TRUE))
   
   # Create org_vendor binary variable for if vendors sell at least one organic sentinel food
 
   combined_data <- combined_data %>%
     mutate(org_vendor = case_when(
-      org_foods_count >= 1 ~ 1, # Assign 1 if count is greater than or equal to 1
+      org_products_count >= 1 ~ 1, # Assign 1 if count is greater than or equal to 1
       TRUE ~ 0 # Assign 0 otherwise
     ))
   
-  # Mutate org_foods_count to remove non-organic vendors
+  # Mutate org_products_count to remove non-organic vendors
   
-  combined_data$org_foods_count[combined_data$org_vendor == 0] <- NA
+  combined_data$org_products_count[combined_data$org_vendor == 0] <- NA
+  
+  # Create org_foodonly_count variable to count how many sentinel foods a vendor sells an organic version of
+
+  org_foodonly_vector <- c("tom_org", "leaf_org", "ban_org", "man_org",
+                           "mill_org", "chic_org", "daal_org", "wht_org",
+                           "rice_org", "nut_org")
+  
+  combined_data <- combined_data %>%
+    mutate(org_foodonly_count = rowSums(select(., all_of(org_foodonly_vector)) == "Yes", na.rm = TRUE))
+  
+  # Create org_vendor_foodonly binary variable for if vendors sell at least one organic sentinel food
+  
+  combined_data <- combined_data %>%
+    mutate(org_vendor_foodonly = case_when(
+      org_foodonly_count >= 1 ~ 1, # Assign 1 if count is greater than or equal to 1
+      TRUE ~ 0 # Assign 0 otherwise
+    ))
+  
+  # Mutate org_products_count to remove non-organic vendors
+  
+  combined_data$org_foodonly_count[combined_data$org_vendor_foodonly == 0] <- NA
   
   
   # Create multiple_org_count variable to count per vendor the number of organic sentinel foods with multiple options
