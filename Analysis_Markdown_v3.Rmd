@@ -2379,8 +2379,90 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 tab9_data <- data_clean
 
 
+# Vector with certification types variables
+vector_certifcols <- tab9_data %>% 
+  select(contains("_org_certif")) %>%
+  select(-matches("_org_certif_None|_org_certif_other_1|_org_certif_other_2|_org_certif_other_3|_org_certif_other_4|_org_certif_other_5")) %>%
+  names()
+
+# Number of products with each certification type, by product and country
+tab9a <- tab9_data %>%
+  select(country, all_of(vector_certifcols)) %>%
+  pivot_longer(
+    cols = all_of(vector_certifcols),
+    names_to = "certification_type",
+    values_to = "value"
+  ) %>%
+  group_by(country, certification_type) %>%
+  summarise(
+    count = sum(!is.na(value) & value == 1, na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+# now I have a count per certification type... need to create columns for product name and certification name... 
+# and figure out a way to turn this count into a ranking and arrange in descending order by the new product name
+# and then rank and slice...
+
+
+tab9c <- tab9_data %>%
+    select(country, all_of(vector_certifcols)) %>%
+    pivot_longer(
+      cols = c(vector_certifcols),
+      names_to = "certification_type",
+      values_to = "value") %>%
+    filter(!is.na(value)) %>%
+    group_by(country, certification_type) %>%
+    count(value) %>%
+    arrange(desc(n), .by_group = TRUE) %>%
+    slice(1:3) %>%
+    mutate(rank = row_number())
+
+
+
+
+tab9a <- left_join(
+  # number of brands in each sentinel food
+  tab9_data %>%
+    select(country, vector_certifcols) %>%
+    pivot_longer(cols = c(vector_certifcols), 
+                 names_to = "food", 
+                 values_to = "certifcols") %>%
+#    filter(!is.na(brand)) %>%
+    group_by(country, food) %>%
+    summarise(n_certifcols = n()),
+  
+  # top three brands for each sentinel food
+  tab9_data %>%
+    select(country, vector_brandnames) %>%
+    pivot_longer(cols = c(vector_brandnames), 
+                 names_to = "food", 
+                 values_to = "brand") %>%
+    filter(!is.na(brand), brand != "Unbranded") %>%
+    group_by(country, food) %>%
+    count(brand) %>%
+    arrange(desc(n), .by_group = TRUE) %>%
+    slice(1:3) %>%
+    mutate(rank = row_number())
+) %>%
+  # adjust variables
+  mutate(food = paste(food, rank),
+         perc = round(n/n_brands*100),
+         brand = paste0(brand, " (", n, ", ", perc, "%)")) %>%
+  select(country, food, brand) %>%
+  # sort by 'food' column alphabetically
+  arrange(food) %>% 
+  # reshape table to match the analysis plan
+  pivot_wider(names_from = country,
+              values_from = brand)
+
+
+
+
+
+
+
 # Vector of product abbreviations
-products <- c("tom", "leaf", "ban", "man", "fj", "milk", "cof", "tea", "mill", "chic", "daal", "wht", "rice", "nut")
+products <- c("ban","chic","cof","wht","fj","leaf","daal","man","milk","mill","nut","rice","tea","tom")
 
 # NOTE THAT I STILL NEED TO ADD THE OTHER COLUMNS!!!!!!!!!!!!!!
 
@@ -2424,6 +2506,31 @@ tab9_product_fn <- function(product) {
 # Apply the function to each product and combine the results into a single data frame
 tab9_combined <- lapply(products, tab9_product_fn) %>%
   bind_rows() 
+
+
+
+
+
+# Pivot the data so that each country becomes a separate column
+tab9_combined_wide <- tab9_combined %>%
+  pivot_wider(
+    names_from = country,
+    values_from = c(cert_count, cert_bac_count, cert_bac_perc, cert_eu_count, cert_eu_perc, 
+                    cert_ibd_count, cert_ibd_perc, cert_io_count, cert_io_perc, cert_jb_count, 
+                    cert_jb_perc, cert_ofg_count, cert_ofg_perc, cert_off_count, cert_off_perc, 
+                    cert_pgsg_count, cert_pgsg_perc, cert_pgso_count, cert_pgso_perc, cert_pob_count, 
+                    cert_pob_perc, cert_qwfc_count, cert_qwfc_perc, cert_sa_count, cert_sa_perc, 
+                    cert_usda_count, cert_usda_perc)
+  )
+
+
+
+
+
+
+
+
+
 
 
 
