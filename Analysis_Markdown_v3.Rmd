@@ -2279,7 +2279,7 @@ tab7 <- left_join(
 ) %>%
   # adjust variables
   mutate(food = paste(food, rank),
-         perc = round(n/n_brands*100),
+         perc = round((n/n_brands)*100, 2),
          brand = paste0(brand, " (", n, ", ", perc, "%)")) %>%
   select(country, food, brand) %>%
    # sort by 'food' column alphabetically
@@ -2385,214 +2385,269 @@ vector_certifcols <- tab9_data %>%
   select(-matches("_org_certif_None|_org_certif_other_1|_org_certif_other_2|_org_certif_other_3|_org_certif_other_4|_org_certif_other_5")) %>%
   names()
 
-# Number of products with each certification type, by product and country
-tab9a <- tab9_data %>%
-  select(country, all_of(vector_certifcols)) %>%
-  pivot_longer(
-    cols = all_of(vector_certifcols),
-    names_to = "certification_type",
-    values_to = "value"
-  ) %>%
-  group_by(country, certification_type) %>%
-  summarise(
-    count = sum(!is.na(value) & value == 1, na.rm = TRUE),
-    .groups = 'drop'
-  )
-
-# now I have a count per certification type... need to create columns for product name and certification name... 
-# and figure out a way to turn this count into a ranking and arrange in descending order by the new product name
-# and then rank and slice...
-
-
-tab9c <- tab9_data %>%
-    select(country, all_of(vector_certifcols)) %>%
-    pivot_longer(
-      cols = c(vector_certifcols),
-      names_to = "certification_type",
-      values_to = "value") %>%
-    filter(!is.na(value)) %>%
-    group_by(country, certification_type) %>%
-    count(value) %>%
-    arrange(desc(n), .by_group = TRUE) %>%
-    slice(1:3) %>%
-    mutate(rank = row_number())
-
-
-
-
-tab9a <- left_join(
-  # number of brands in each sentinel food
-  tab9_data %>%
-    select(country, vector_certifcols) %>%
-    pivot_longer(cols = c(vector_certifcols), 
-                 names_to = "food", 
-                 values_to = "certifcols") %>%
-#    filter(!is.na(brand)) %>%
-    group_by(country, food) %>%
-    summarise(n_certifcols = n()),
-  
-  # top three brands for each sentinel food
-  tab9_data %>%
-    select(country, vector_brandnames) %>%
-    pivot_longer(cols = c(vector_brandnames), 
-                 names_to = "food", 
-                 values_to = "brand") %>%
-    filter(!is.na(brand), brand != "Unbranded") %>%
-    group_by(country, food) %>%
-    count(brand) %>%
-    arrange(desc(n), .by_group = TRUE) %>%
-    slice(1:3) %>%
-    mutate(rank = row_number())
-) %>%
-  # adjust variables
-  mutate(food = paste(food, rank),
-         perc = round(n/n_brands*100),
-         brand = paste0(brand, " (", n, ", ", perc, "%)")) %>%
-  select(country, food, brand) %>%
-  # sort by 'food' column alphabetically
-  arrange(food) %>% 
-  # reshape table to match the analysis plan
-  pivot_wider(names_from = country,
-              values_from = brand)
-
-
-
-
-
-
-
 # Vector of product abbreviations
 products <- c("ban","chic","cof","wht","fj","leaf","daal","man","milk","mill","nut","rice","tea","tom")
 
-# NOTE THAT I STILL NEED TO ADD THE OTHER COLUMNS!!!!!!!!!!!!!!
-
-# PRODUCT-LEVEL SUMMARY
-# Define a function to summarize data for a given product and dataset
+# Define a function to summarise number of certification types
 tab9_product_fn <- function(product) {
   tab9_data %>%
-    summarise(
-      cert_count = sum(get(paste0(product, "_cert")) == 1),
-      cert_bac_count = sum(get(paste0(product, "_org_certif_Biodynamic.Association.Certification")) == 1, na.rm = TRUE),
-      cert_bac_perc = round((cert_bac_count / cert_count)*100,2),
-      cert_eu_count = sum(get(paste0(product, "_org_certif_EU.Green.Leaf")) == 1, na.rm = TRUE),
-      cert_eu_perc = round((cert_eu_count / cert_count)*100,2),
-      cert_ibd_count = sum(get(paste0(product, "_org_certif_IBD.Brasil")) == 1, na.rm = TRUE),
-      cert_ibd_perc = round((cert_ibd_count / cert_count)*100,2),
-      cert_io_count = sum(get(paste0(product, "_org_certif_India.Organic.(blue.and.red.circle.and.swirl)")) == 1, na.rm = TRUE),
-      cert_io_perc = round((cert_io_count / cert_count)*100,2),
-      cert_jb_count = sum(get(paste0(product, "_org_certif_Jaivik.Bharat.(green.check.mark)")) == 1, na.rm = TRUE),
-      cert_jb_perc = round((cert_jb_count / cert_count)*100,2),
-      cert_ofg_count = sum(get(paste0(product, "_org_certif_Organic.Farmers.and.Growers.(OF&G)")) == 1, na.rm = TRUE),
-      cert_ofg_perc = round((cert_ofg_count / cert_count)*100,2),
-      cert_off_count = sum(get(paste0(product, "_org_certif_Organic.Food.Federation")) == 1, na.rm = TRUE),
-      cert_off_perc = round((cert_off_count / cert_count)*100,2),
-      cert_pgsg_count = sum(get(paste0(product, "_org_certif_PGS-India.Green.(red.orb.above.green.leaves)")) == 1, na.rm = TRUE),
-      cert_pgsg_perc = round((cert_pgsg_count / cert_count)*100,2),
-      cert_pgso_count = sum(get(paste0(product, "_org_certif_PGS-India.Organic.(blue.orb.above.green.leaves)")) == 1, na.rm = TRUE),
-      cert_pgso_perc = round((cert_pgso_count / cert_count)*100,2),
-      cert_pob_count = sum(get(paste0(product, "_org_certif_Produto.Organico.Brasil")) == 1, na.rm = TRUE),
-      cert_pob_perc = round((cert_pob_count / cert_count)*100,2),
-      cert_qwfc_count = sum(get(paste0(product, "_org_certif_Quality.Welsh.Food.Certification")) == 1, na.rm = TRUE),
-      cert_qwfc_perc = round((cert_qwfc_count / cert_count)*100,2),
-      cert_sa_count = sum(get(paste0(product, "_org_certif_Soil.Association")) == 1, na.rm = TRUE),
-      cert_sa_perc = round((cert_sa_count / cert_count)*100,2),
-      cert_usda_count = sum(get(paste0(product, "_org_certif_USDA")) == 1, na.rm = TRUE),
-      cert_usda_perc = round((cert_usda_count / cert_count)*100,2),
-    ) %>%
+    group_by(country) %>%
+    summarise(overall_cert_count = sum(get(paste0(product, "_cert")) == 1)) %>%
     mutate(product= product) %>%
     select(product, everything())
 }
 
-# Apply the function to each product and combine the results into a single data frame
-tab9_combined <- lapply(products, tab9_product_fn) %>%
-  bind_rows() 
-
-
-
-
-
-# Pivot the data so that each country becomes a separate column
-tab9_combined_wide <- tab9_combined %>%
-  pivot_wider(
-    names_from = country,
-    values_from = c(cert_count, cert_bac_count, cert_bac_perc, cert_eu_count, cert_eu_perc, 
-                    cert_ibd_count, cert_ibd_perc, cert_io_count, cert_io_perc, cert_jb_count, 
-                    cert_jb_perc, cert_ofg_count, cert_ofg_perc, cert_off_count, cert_off_perc, 
-                    cert_pgsg_count, cert_pgsg_perc, cert_pgso_count, cert_pgso_perc, cert_pob_count, 
-                    cert_pob_perc, cert_qwfc_count, cert_qwfc_perc, cert_sa_count, cert_sa_perc, 
-                    cert_usda_count, cert_usda_perc)
-  )
-
-
-
-
-
-
-
-
-
-
-
-
-
-# vector with certification names variables
-vector_certtype <- tab9_data %>%
-  select(contains("org_certif_")) %>%
-  names()
-
-# vector with OTHER certification names variables
-vector_certtype_other <- tab9_data %>% 
-  select(contains("org_certif_other_")) %>%
-  names()
-
-tab9a <- tab9_data %>%
-  select(id, country, vector_certtype)
-
 
 tab9 <- left_join(
-  # number of brands in each sentinel food
-  tab9_data %>%
-    select(country, vector_certtype_other) %>%
-    pivot_longer(cols = c(vector_certtype_other), 
-                 names_to = "food", 
-                 values_to = "certttypeother") %>%
-    filter(!is.na(certtypeother)) %>%
-    group_by(country, food) %>%
-    summarise(n_brands = n()),
   
-  # top three brands for each sentinel food
+  # Number of products with each certification type
   tab9_data %>%
-    select(country, vector_certtype) %>%
-    pivot_longer(cols = c(vector_certtype), 
-                 names_to = "food", 
-                 values_to = "brand") %>%
-    filter(!is.na(brand), brand != "Unbranded") %>%
-    group_by(country, food) %>%
-    count(brand) %>%
-    arrange(desc(n), .by_group = TRUE) %>%
+    select(country, all_of(vector_certifcols)) %>%
+    pivot_longer(
+      cols = all_of(vector_certifcols),
+      names_to = "certification_type",
+      values_to = "value"
+    ) %>%
+    group_by(country, certification_type) %>%
+    summarise(cert_type_count = sum(!is.na(value) & value == 1, na.rm = TRUE), .groups = 'drop') %>%
+    mutate(
+      product = sub("_.*", "", certification_type),
+      certification_name = gsub("(?<=[a-zA-Z])\\.(?=[a-zA-Z])", " ", sub(".*_", "", certification_type), perl = TRUE)
+      ) %>%
+    group_by(country, product) %>%
+    arrange(country, product, desc(cert_type_count)) %>%
     slice(1:3) %>%
-    mutate(rank = row_number())
+    mutate(rank = row_number()) %>%
+    select(product, country, everything()),
+  # Apply the function to create a table with list of certification types and their number
+  tab9d_combined <- lapply(products, tab9_product_fn) %>%
+    bind_rows() 
 ) %>%
-  # adjust variables
-  mutate(food = paste(food, rank),
-         perc = round(n/n_brands*100),
-         brand = paste0(brand, " (", n, ", ", perc, "%)")) %>%
-  select(country, food, brand) %>%
-   # sort by 'food' column alphabetically
-  arrange(food) %>% 
-  # reshape table to match the analysis plan
+  
+  # Combine and clean up variables
+  mutate(product = paste(product, rank),
+         perc = round((cert_type_count/overall_cert_count)*100, 2),
+         certification = ifelse(cert_type_count == 0, NA, paste0(certification_name, " (", cert_type_count, ", ", perc, "%)"))) %>%
+  select(country, product, certification) %>%
+  # Sort by product column alphabetically
+  arrange(product) %>%
+  # Reshape table to match the analysis plan
   pivot_wider(names_from = country,
-              values_from = brand)
+              values_from = certification)
 
-kable(tab7)
+# NOTE THAT I STILL NEED TO ADD THE OTHER COLUMNS!!!!!!!!!!!!!!
+
+
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 7")
-writeData(table_outputs, sheet = "Table 7", x = tab7)
+addWorksheet(table_outputs, "Table 9")
+writeData(table_outputs, sheet = "Table 9", x = tab9)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
 
 
+### Themes - Table 10
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create new instance of dataset for Table 10
+tab10_data <- data_clean
+
+
+# Vector with theme count variables
+vector_themes <- tab10_data %>% 
+  select(contains("theme_")) %>%
+  select(-matches("theme_na_count|theme_none_count|theme_other_count|promo_theme")) %>%
+  names()
+
+# Create the country-level summary table
+
+tab10_main <- tab10_data %>%
+  select(country, org_products_count, all_of(vector_themes)) %>%
+  pivot_longer(
+    cols = all_of(vector_themes),
+    names_to = "theme",
+    values_to = "value"
+  ) %>%
+  group_by(country, theme) %>%
+  summarise(
+    theme_count = sum(!is.na(value) & value == 1, na.rm = TRUE), 
+    org_count = sum(as.numeric(org_products_count), na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  mutate(perc = round((theme_count / org_count)*100,2)) %>%
+  select(country, theme, theme_count, perc)
+
+# Create the overall summary table
+
+tab10_overall <- tab10_data %>%
+  select(org_products_count, all_of(vector_themes)) %>%
+  pivot_longer(
+    cols = all_of(vector_themes),
+    names_to = "theme",
+    values_to = "value"
+  ) %>%
+  group_by(theme) %>%
+  summarise(
+    theme_count = sum(!is.na(value) & value == 1, na.rm = TRUE), 
+    org_count = sum(as.numeric(org_products_count), na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    perc = round((theme_count / org_count)*100,2),
+    country = paste0("Overall")
+    ) %>%
+  select(country, theme, theme_count, perc)
+
+
+# Combine the main data with the overall summary
+tab10 <- bind_rows(tab10_main, tab10_overall) %>%
+  # Pivot wider to make countries as columns with theme_count and perc as sub-columns
+  pivot_wider(
+    names_from = country,
+    values_from = c(theme_count, perc),
+  ) %>%
+  arrange(theme) %>%
+  select(theme, theme_count_Overall, perc_Overall, theme_count_Brazil, perc_Brazil, 
+         theme_count_India, perc_India, theme_count_UK, perc_UK)
+
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 10")
+writeData(table_outputs, sheet = "Table 10", x = tab10)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+```
+
+
+### Promotional materials - Table 11
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create new instance of dataset for Table 11
+tab11_data <- data_clean
+
+
+## 1. FREQUENCY OF PROMOTIONAL MATERIALS
+
+# Create a table summarising the frequency of promotional materials
+
+tab11a <- tab11_data %>%
+  group_by(country) %>%
+  summarise(
+    promo_count = sum(promo_count, na.rm = TRUE),
+    org_count = sum(org_products_count, na.rm = TRUE)
+  ) %>%
+  mutate(
+    perc = round((promo_count/org_count)*100,2)
+  ) %>%
+  bind_rows(
+    summarise(
+      .,
+      country = "Overall",
+      promo_count = sum(promo_count, na.rm = TRUE),
+      org_count = sum(org_count, na.rm = TRUE),
+      perc = round((sum(promo_count, na.rm = TRUE) / sum(org_count, na.rm = TRUE)) * 100, 2)
+    )
+  ) %>%
+  select(country, promo_count, perc) %>%
+  pivot_wider(
+    names_from = country,
+    values_from = c(promo_count, perc)
+  ) %>%
+  select(promo_count_Overall, perc_Overall, promo_count_Brazil, perc_Brazil,
+         promo_count_India, perc_India, promo_count_UK, perc_UK)
+
+
+## 2. TYPE OF PROMOTIONAL MATERIALS
+
+
+
+## 3. PROMOTIONAL MATERIALS' THEMES
+
+
+# Vector with promotional theme count variables
+vector_themes_promo <- tab11_data %>% 
+  select(contains("promo_theme_")) %>%
+  #select(-matches("promo_theme_other_count")) %>%
+  names()
+
+# Create the country-level summary table
+
+tab11b_main <- tab11_data %>%
+  select(country, promo_count, all_of(vector_themes_promo)) %>%
+  filter(promo_count > 0 | is.na(promo_count)) %>% # Keep only rows with at least one product with a promotion
+  pivot_longer(
+    cols = all_of(vector_themes_promo),
+    names_to = "theme",
+    values_to = "value"
+  ) %>%
+  group_by(country, theme) %>%
+  summarise(
+    theme_count = sum(!is.na(value) & value == 1, na.rm = TRUE), 
+    promo_count = sum(as.numeric(promo_count), na.rm = TRUE),
+    .groups = 'drop' # something is going wrong at this point because Brazil should have 1 for quality and it doesn't here
+  ) %>%
+  mutate(perc = round((theme_count / promo_count)*100,2)) %>%
+  select(country, theme, theme_count, perc)
+
+
+# Tried a slightly different approach to see if the pivot with promo_count was the issue but it still doesn't work:
+#tab11c_main <- tab11_data %>%
+#  select(country, all_of(vector_themes_promo)) %>%
+#  pivot_longer(
+#    cols = all_of(vector_themes_promo),
+#    names_to = "theme",
+#    values_to = "value"
+#  ) %>%
+#  group_by(country, theme) %>%
+#  summarise(
+#    theme_count = sum(!is.na(value) & value == 1, na.rm = TRUE)
+#  ) %>%
+#  mutate(perc = round((theme_count / promo_count)*100,2)) %>%
+#  select(country, theme, theme_count, perc)
+
+# THIS MAKES ME THINK TABLE 10 IS ALSO INCORRECTLY CALCULATING...
+
+
+# Create the overall summary table - NOTE THAT THIS SEEMS TO WORK???
+
+tab11b_overall <- tab11_data %>%
+  select(promo_count, all_of(vector_themes_promo)) %>%
+  pivot_longer(
+    cols = all_of(vector_themes_promo),
+    names_to = "theme",
+    values_to = "value"
+  ) %>%
+  group_by(theme) %>%
+  summarise(
+    theme_count = sum(!is.na(value) & value == 1, na.rm = TRUE), 
+    promo_count = sum(as.numeric(promo_count), na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    perc = round((theme_count / promo_count)*100,2),
+    country = paste0("Overall")
+    ) %>%
+  select(country, theme, theme_count, perc)
+
+
+# Combine the main data with the overall summary
+tab11b <- bind_rows(tab11b_main, tab11b_overall) %>%
+  # Pivot wider to make countries as columns with theme_count and perc as sub-columns
+  pivot_wider(
+    names_from = country,
+    values_from = c(theme_count, perc),
+  ) %>%
+  arrange(theme) %>%
+  select(theme, theme_count_Overall, perc_Overall, theme_count_Brazil, perc_Brazil, 
+         theme_count_India, perc_India, theme_count_UK, perc_UK)
+
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 10")
+writeData(table_outputs, sheet = "Table 10", x = tab10)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+```
 
 
 
