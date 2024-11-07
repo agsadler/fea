@@ -1447,6 +1447,16 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
       TRUE ~ 0 # Assign 0 otherwise
     ))
   
+  # Create foods_count variable to count per vendor the number of sentinel foods, both organic and non-organic
+  
+  foods_count_vector <- c("tom_sell","leaf_sell","ban_sell","man_sell","fj_sell",
+                          "milk_sell","cof_sell","tea_sell","mill_sell","daal_sell",
+                          "wht_sell","rice_sell","nut_sell","chic_sell")
+  
+  combined_data <- combined_data %>%
+    mutate(foods_count = rowSums(select(., all_of(foods_count_vector)) == "Yes", na.rm = TRUE))
+  
+  
   # Create days_open_count variable to count number of days vendors are open
   
   days_vector <- c("vendor_days_Monday","vendor_days_Tuesday","vendor_days_Wednesday","vendor_days_Thursday",
@@ -1906,39 +1916,34 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
     mutate(promo_theme_qual_count = rowSums(select(., all_of(promo_theme_qual_vector)) == 1, na.rm = TRUE))
   
   # Create promo_theme_life_count variable to count per vendor the number of organic sentinel foods with the PROMOTIONAL theme lifestyle (e.g. “live an organic life”)
+  # NOTE: This theme was mistakenly excluded from the promotional themes part of the survey;
+  # It was only included for packaging themes
   
-  promo_theme_life_vector <- c('tom_org_promo_themes_Lifestyle (e.g. "live an organic life")', 'leaf_org_promo_themes_Lifestyle (e.g. "live an organic life")', 
-                               'ban_org_promo_themes_Lifestyle (e.g. "live an organic life")', 'man_org_promo_themes_Lifestyle (e.g. "live an organic life")', 
-                               'fj_org_promo_themes_Lifestyle (e.g. "live an organic life")', 'milk_org_promo_themes_Lifestyle (e.g. "live an organic life")', 
-                               'cof_org_promo_themes_Lifestyle (e.g. "live an organic life")', 'tea_org_promo_themes_Lifestyle (e.g. "live an organic life")', 
-                               'mill_org_promo_themes_Lifestyle (e.g. "live an organic life")', 'daal_org_promo_themes_Lifestyle (e.g. "live an organic life")', 
-                               'wht_org_promo_themes_Lifestyle (e.g. "live an organic life")', 'rice_org_promo_themes_Lifestyle (e.g. "live an organic life")', 
-                               'nut_org_promo_themes_Lifestyle (e.g. "live an organic life")', 'chic_org_promo_themes_Lifestyle (e.g. "live an organic life")')
+#  promo_theme_life_vector <- c('tom_org_promo_themes_Lifestyle (e.g. "live an organic life")', 'leaf_org_promo_themes_Lifestyle (e.g. "live an organic life")', 
+#                               'ban_org_promo_themes_Lifestyle (e.g. "live an organic life")', 'man_org_promo_themes_Lifestyle (e.g. "live an organic life")', 
+#                               'fj_org_promo_themes_Lifestyle (e.g. "live an organic life")', 'milk_org_promo_themes_Lifestyle (e.g. "live an organic life")', 
+#                               'cof_org_promo_themes_Lifestyle (e.g. "live an organic life")', 'tea_org_promo_themes_Lifestyle (e.g. "live an organic life")', 
+#                               'mill_org_promo_themes_Lifestyle (e.g. "live an organic life")', 'daal_org_promo_themes_Lifestyle (e.g. "live an organic life")', 
+#                               'wht_org_promo_themes_Lifestyle (e.g. "live an organic life")', 'rice_org_promo_themes_Lifestyle (e.g. "live an organic life")', 
+#                               'nut_org_promo_themes_Lifestyle (e.g. "live an organic life")', 'chic_org_promo_themes_Lifestyle (e.g. "live an organic life")')
   
-  combined_data <- combined_data %>%
-    mutate(promo_theme_life_count = rowSums(select(., all_of(promo_theme_life_vector)) == 1, na.rm = TRUE))
+#  combined_data <- combined_data %>%
+#    mutate(promo_theme_life_count = rowSums(select(., all_of(promo_theme_life_vector)) == 1, na.rm = TRUE))
   
   # Create promo_theme_none_count variable to count per vendor the number of organic sentinel foods with no PROMOTIONAL theme
+  # NOTE: This theme was mistakenly excluded from the promotional themes part of the survey;
+  # It was only included for packaging themes
   
-  promo_theme_none_vector <- c("tom_org_promo_themes_None","leaf_org_promo_themes_None","ban_org_promo_themes_None",
-                               "man_org_promo_themes_None","fj_org_promo_themes_None","milk_org_promo_themes_None",
-                               "cof_org_promo_themes_None","tea_org_promo_themes_None","mill_org_promo_themes_None",
-                               "daal_org_promo_themes_None","wht_org_promo_themes_None","rice_org_promo_themes_None",
-                               "nut_org_promo_themes_None","chic_org_promo_themes_None")
+#  promo_theme_none_vector <- c("tom_org_promo_themes_None","leaf_org_promo_themes_None","ban_org_promo_themes_None",
+#                               "man_org_promo_themes_None","fj_org_promo_themes_None","milk_org_promo_themes_None",
+#                               "cof_org_promo_themes_None","tea_org_promo_themes_None","mill_org_promo_themes_None",
+#                               "daal_org_promo_themes_None","wht_org_promo_themes_None","rice_org_promo_themes_None",
+#                               "nut_org_promo_themes_None","chic_org_promo_themes_None")
   
-  combined_data <- combined_data %>%
-    mutate(promo_theme_none_count = rowSums(select(., all_of(promo_theme_none_vector)) == 1, na.rm = TRUE))
+#  combined_data <- combined_data %>%
+#    mutate(promo_theme_none_count = rowSums(select(., all_of(promo_theme_none_vector)) == 1, na.rm = TRUE))
   
   # Create promo_theme_na_count variable to count per vendor the number of organic sentinel foods for which PROMOTIONAL theme is not applicable (e.g. no/blank packaging)
-  
-  promo_theme_na_vector <- c("tom_org_promo_themes_Not applicable (no promoaging or blank packaging)","leaf_org_promo_themes_Not applicable (no packaging or blank packaging)","ban_org_promo_themes_Not applicable (no packaging or blank packaging)",
-                             "man_org_promo_themes_Not applicable (no packaging or blank packaging)","fj_org_promo_themes_Not applicable (no packaging or blank packaging)","milk_org_promo_themes_Not applicable (no packaging or blank packaging)",
-                             "cof_org_promo_themes_Not applicable (no packaging or blank packaging)","tea_org_promo_themes_Not applicable (no packaging or blank packaging)","mill_org_promo_themes_Not applicable (no packaging or blank packaging)",
-                             "daal_org_promo_themes_Not applicable (no packaging or blank packaging)","wht_org_promo_themes_Not applicable (no packaging or blank packaging)","rice_org_promo_themes_Not applicable (no packaging or blank packaging)",
-                             "nut_org_promo_themes_Not applicable (no packaging or blank packaging)","chic_org_promo_themes_Not applicable (no packaging or blank packaging)")
-  
-  combined_data <- combined_data %>%
-    mutate(promo_theme_na_count = rowSums(select(., all_of(promo_theme_na_vector)) == 1, na.rm = TRUE))
   
   # Create promo_theme_other_count variable to count per vendor the number of organic sentinel foods with an unspecified/other PROMOTIONAL theme
   
@@ -1952,15 +1957,7 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
     mutate(promo_theme_other_count = rowSums(select(., all_of(promo_theme_other_vector)) == 1, na.rm = TRUE))
   
   
-  # Create foods_count variable to count per vendor the number of sentinel foods, both organic and non-organic
-  
-  foods_count_vector <- c("tom_sell","leaf_sell","ban_sell","man_sell","fj_sell",
-                          "milk_sell","cof_sell","tea_sell","mill_sell","daal_sell",
-                          "wht_sell","rice_sell","nut_sell","chic_sell")
-  
-  combined_data <- combined_data %>%
-    mutate(foods_count = rowSums(select(., all_of(foods_count_vector)) == "Yes", na.rm = TRUE))
-  
+
   
   # Create promo_count variable to count the number of organic products with a promotion
   
@@ -1972,6 +1969,94 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
     mutate(promo_count = rowSums(select(., all_of(promo_vector)) == "Yes", na.rm = TRUE))
   
         
+  # Create promo_type_exterior_count variable to count per vendor the number of exterior promotions
+  
+  promo_type_exterior_vector <- c("tom_org_promo_type_Exterior/outdoor signage","leaf_org_promo_type_Exterior/outdoor signage","ban_org_promo_type_Exterior/outdoor signage",
+                                 "man_org_promo_type_Exterior/outdoor signage","fj_org_promo_type_Exterior/outdoor signage","milk_org_promo_type_Exterior/outdoor signage",
+                                 "cof_org_promo_type_Exterior/outdoor signage","tea_org_promo_type_Exterior/outdoor signage","mill_org_promo_type_Exterior/outdoor signage",
+                                 "daal_org_promo_type_Exterior/outdoor signage","wht_org_promo_type_Exterior/outdoor signage","rice_org_promo_type_Exterior/outdoor signage",
+                                 "nut_org_promo_type_Exterior/outdoor signage","chic_org_promo_type_Exterior/outdoor signage")
+  
+  combined_data <- combined_data %>%
+    mutate(promo_type_exterior_count = rowSums(select(., all_of(promo_type_exterior_vector)) == 1, na.rm = TRUE))
+  
+  
+  # Create promo_type_shelf_count variable to count per vendor the number of shelf promotions
+  
+  promo_type_shelf_vector <- c("tom_org_promo_type_Shelf labelling near product","leaf_org_promo_type_Shelf labelling near product","ban_org_promo_type_Shelf labelling near product",
+                               "man_org_promo_type_Shelf labelling near product","fj_org_promo_type_Shelf labelling near product","milk_org_promo_type_Shelf labelling near product",
+                               "cof_org_promo_type_Shelf labelling near product","tea_org_promo_type_Shelf labelling near product","mill_org_promo_type_Shelf labelling near product",
+                               "daal_org_promo_type_Shelf labelling near product","wht_org_promo_type_Shelf labelling near product","rice_org_promo_type_Shelf labelling near product",
+                               "nut_org_promo_type_Shelf labelling near product","chic_org_promo_type_Shelf labelling near product")
+  
+  combined_data <- combined_data %>%
+    mutate(promo_type_shelf_count = rowSums(select(., all_of(promo_type_shelf_vector)) == 1, na.rm = TRUE))
+  
+  
+  # Create promo_type_large_count variable to count per vendor the number of large promotions
+  
+  promo_type_large_vector <- c("tom_org_promo_type_Large displays","leaf_org_promo_type_Large displays","ban_org_promo_type_Large displays",
+                               "man_org_promo_type_Large displays","fj_org_promo_type_Large displays","milk_org_promo_type_Large displays",
+                               "cof_org_promo_type_Large displays","tea_org_promo_type_Large displays","mill_org_promo_type_Large displays",
+                               "daal_org_promo_type_Large displays","wht_org_promo_type_Large displays","rice_org_promo_type_Large displays",
+                               "nut_org_promo_type_Large displays","chic_org_promo_type_Large displays")
+  
+  combined_data <- combined_data %>%
+    mutate(promo_type_large_count = rowSums(select(., all_of(promo_type_large_vector)) == 1, na.rm = TRUE))
+  
+  
+  # Create promo_type_digital_count variable to count per vendor the number of digital promotions
+  
+  promo_type_digital_vector <- c("tom_org_promo_type_Digital promotional displays","leaf_org_promo_type_Digital promotional displays","ban_org_promo_type_Digital promotional displays",
+                                 "man_org_promo_type_Digital promotional displays","fj_org_promo_type_Digital promotional displays","milk_org_promo_type_Digital promotional displays",
+                                 "cof_org_promo_type_Digital promotional displays","tea_org_promo_type_Digital promotional displays","mill_org_promo_type_Digital promotional displays",
+                                 "daal_org_promo_type_Digital promotional displays","wht_org_promo_type_Digital promotional displays","rice_org_promo_type_Digital promotional displays",
+                                 "nut_org_promo_type_Digital promotional displays","chic_org_promo_type_Digital promotional displays")
+  
+  combined_data <- combined_data %>%
+    mutate(promo_type_digital_count = rowSums(select(., all_of(promo_type_digital_vector)) == 1, na.rm = TRUE))
+  
+  
+  # Create promo_type_reps_count variable to count per vendor the number of in-store representative promotions
+  
+  promo_type_reps_vector <- c("tom_org_promo_type_In-store representatives","leaf_org_promo_type_In-store representatives","ban_org_promo_type_In-store representatives",
+                              "man_org_promo_type_In-store representatives","fj_org_promo_type_In-store representatives","milk_org_promo_type_In-store representatives",
+                              "cof_org_promo_type_In-store representatives","tea_org_promo_type_In-store representatives","mill_org_promo_type_In-store representatives",
+                              "daal_org_promo_type_In-store representatives","wht_org_promo_type_In-store representatives","rice_org_promo_type_In-store representatives",
+                              "nut_org_promo_type_In-store representatives","chic_org_promo_type_In-store representatives")
+  
+  combined_data <- combined_data %>%
+    mutate(promo_type_reps_count = rowSums(select(., all_of(promo_type_reps_vector)) == 1, na.rm = TRUE))
+  
+  
+  # Create promo_type_otherspecify_count variable to count per vendor the number of 'Other (specify)' promotions
+  
+  promo_type_otherspecify_vector <- c("tom_org_promo_type_Other (specify)","leaf_org_promo_type_Other (specify)","ban_org_promo_type_Other (specify)",
+                                      "man_org_promo_type_Other (specify)","fj_org_promo_type_Other (specify)","milk_org_promo_type_Other (specify)",
+                                      "cof_org_promo_type_Other (specify)","tea_org_promo_type_Other (specify)","mill_org_promo_type_Other (specify)",
+                                      "daal_org_promo_type_Other (specify)","wht_org_promo_type_Other (specify)","rice_org_promo_type_Other (specify)",
+                                      "nut_org_promo_type_Other (specify)","chic_org_promo_type_Other (specify)")
+  
+  combined_data <- combined_data %>%
+    mutate(promo_type_otherspecify_count = rowSums(select(., all_of(promo_type_otherspecify_vector)) == 1, na.rm = TRUE))
+  
+  
+  # Create promo_type_other_count variable to count per vendor the number of other promotions
+  
+  promo_type_other_vector <- c("tom_org_promo_type_other","leaf_org_promo_type_other","ban_org_promo_type_other",
+                               "man_org_promo_type_other","fj_org_promo_type_other","milk_org_promo_type_other",
+                               "cof_org_promo_type_other","tea_org_promo_type_other","mill_org_promo_type_other",
+                               "daal_org_promo_type_other","wht_org_promo_type_other","rice_org_promo_type_other",
+                               "nut_org_promo_type_other","chic_org_promo_type_other")
+  
+  combined_data <- combined_data %>%
+    mutate(promo_type_other_count = rowSums(select(., all_of(promo_type_other_vector)) == 1, na.rm = TRUE))
+  
+  
+  
+  
+  
+  
 # 13. EXPORT DATA TO EXCEL FILES----
 
 # OVERALL DATA

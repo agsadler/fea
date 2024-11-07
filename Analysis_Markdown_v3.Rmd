@@ -2471,8 +2471,8 @@ tab10_main <- tab10_data %>%
   ) %>%
   group_by(country, theme) %>%
   summarise(
-    theme_count = sum(!is.na(value) & value == 1, na.rm = TRUE), 
-    org_count = sum(as.numeric(org_products_count), na.rm = TRUE),
+    theme_count = sum(value, na.rm = TRUE), 
+    org_count = sum(org_products_count, na.rm = TRUE),
     .groups = 'drop'
   ) %>%
   mutate(perc = round((theme_count / org_count)*100,2)) %>%
@@ -2489,8 +2489,8 @@ tab10_overall <- tab10_data %>%
   ) %>%
   group_by(theme) %>%
   summarise(
-    theme_count = sum(!is.na(value) & value == 1, na.rm = TRUE), 
-    org_count = sum(as.numeric(org_products_count), na.rm = TRUE),
+    theme_count = sum(value, na.rm = TRUE), 
+    org_count = sum(org_products_count, na.rm = TRUE),
     .groups = 'drop'
   ) %>%
   mutate(
@@ -2558,22 +2558,81 @@ tab11a <- tab11_data %>%
          promo_count_India, perc_India, promo_count_UK, perc_UK)
 
 
-## 2. TYPE OF PROMOTIONAL MATERIALS
+## 2. TYPES OF PROMOTIONAL MATERIALS
 
 
-
-## 3. PROMOTIONAL MATERIALS' THEMES
-
-
-# Vector with promotional theme count variables
-vector_themes_promo <- tab11_data %>% 
-  select(contains("promo_theme_")) %>%
-  #select(-matches("promo_theme_other_count")) %>%
+# Vector with promotional type count variables
+vector_type_promo <- tab11_data %>% 
+  select(contains("promo_type_")) %>%
+  select(-matches("org_promo_type|promo_type_other")) %>%
   names()
 
 # Create the country-level summary table
 
 tab11b_main <- tab11_data %>%
+  select(country, promo_count, all_of(vector_type_promo)) %>%
+  filter(promo_count > 0 | is.na(promo_count)) %>% 
+  pivot_longer(
+    cols = all_of(vector_type_promo),
+    names_to = "type",
+    values_to = "value"
+  ) %>%
+  group_by(country, type) %>%
+  summarise(
+    type_count = sum(value, na.rm = TRUE), 
+    promo_count = sum(promo_count, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  mutate(perc = round((type_count / promo_count)*100,2)) %>%
+  select(country, type, type_count, perc)
+
+
+# Create the overall summary table
+
+tab11b_overall <- tab11_data %>%
+  select(promo_count, all_of(vector_type_promo)) %>%
+  pivot_longer(
+    cols = all_of(vector_type_promo),
+    names_to = "type",
+    values_to = "value"
+  ) %>%
+  group_by(type) %>%
+  summarise(
+    type_count = sum(value, na.rm = TRUE), 
+    promo_count = sum(promo_count, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    perc = round((type_count / promo_count)*100,2),
+    country = paste0("Overall")
+    ) %>%
+  select(country, type, type_count, perc)
+
+
+# Combine the main data with the overall summary
+tab11b <- bind_rows(tab11b_main, tab11b_overall) %>%
+  # Pivot wider to make countries as columns with theme_count and perc as sub-columns
+  pivot_wider(
+    names_from = country,
+    values_from = c(type_count, perc),
+  ) %>%
+  arrange(type) %>%
+  select(type, type_count_Overall, perc_Overall, type_count_Brazil, perc_Brazil, 
+         type_count_India, perc_India, type_count_UK, perc_UK)
+
+
+
+## 3. THEMES OF PROMOTIONAL MATERIALS
+
+# Vector with promotional theme count variables
+vector_themes_promo <- tab11_data %>% 
+  select(contains("promo_theme_")) %>%
+  select(-matches("promo_theme_other_count")) %>%
+  names()
+
+# Create the country-level summary table
+
+tab11c_main <- tab11_data %>%
   select(country, promo_count, all_of(vector_themes_promo)) %>%
   filter(promo_count > 0 | is.na(promo_count)) %>% # Keep only rows with at least one product with a promotion
   pivot_longer(
@@ -2583,35 +2642,17 @@ tab11b_main <- tab11_data %>%
   ) %>%
   group_by(country, theme) %>%
   summarise(
-    theme_count = sum(!is.na(value) & value == 1, na.rm = TRUE), 
-    promo_count = sum(as.numeric(promo_count), na.rm = TRUE),
-    .groups = 'drop' # something is going wrong at this point because Brazil should have 1 for quality and it doesn't here
+    theme_count = sum(value, na.rm = TRUE), 
+    promo_count = sum(promo_count, na.rm = TRUE),
+    .groups = 'drop'
   ) %>%
   mutate(perc = round((theme_count / promo_count)*100,2)) %>%
   select(country, theme, theme_count, perc)
 
 
-# Tried a slightly different approach to see if the pivot with promo_count was the issue but it still doesn't work:
-#tab11c_main <- tab11_data %>%
-#  select(country, all_of(vector_themes_promo)) %>%
-#  pivot_longer(
-#    cols = all_of(vector_themes_promo),
-#    names_to = "theme",
-#    values_to = "value"
-#  ) %>%
-#  group_by(country, theme) %>%
-#  summarise(
-#    theme_count = sum(!is.na(value) & value == 1, na.rm = TRUE)
-#  ) %>%
-#  mutate(perc = round((theme_count / promo_count)*100,2)) %>%
-#  select(country, theme, theme_count, perc)
+# Create the overall summary table
 
-# THIS MAKES ME THINK TABLE 10 IS ALSO INCORRECTLY CALCULATING...
-
-
-# Create the overall summary table - NOTE THAT THIS SEEMS TO WORK???
-
-tab11b_overall <- tab11_data %>%
+tab11c_overall <- tab11_data %>%
   select(promo_count, all_of(vector_themes_promo)) %>%
   pivot_longer(
     cols = all_of(vector_themes_promo),
@@ -2620,8 +2661,8 @@ tab11b_overall <- tab11_data %>%
   ) %>%
   group_by(theme) %>%
   summarise(
-    theme_count = sum(!is.na(value) & value == 1, na.rm = TRUE), 
-    promo_count = sum(as.numeric(promo_count), na.rm = TRUE),
+    theme_count = sum(value, na.rm = TRUE), 
+    promo_count = sum(promo_count, na.rm = TRUE),
     .groups = 'drop'
   ) %>%
   mutate(
@@ -2632,7 +2673,7 @@ tab11b_overall <- tab11_data %>%
 
 
 # Combine the main data with the overall summary
-tab11b <- bind_rows(tab11b_main, tab11b_overall) %>%
+tab11c <- bind_rows(tab11c_main, tab11c_overall) %>%
   # Pivot wider to make countries as columns with theme_count and perc as sub-columns
   pivot_wider(
     names_from = country,
@@ -2644,8 +2685,15 @@ tab11b <- bind_rows(tab11b_main, tab11b_overall) %>%
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 10")
-writeData(table_outputs, sheet = "Table 10", x = tab10)
+addWorksheet(table_outputs, "Table 11a")
+writeData(table_outputs, sheet = "Table 11a", x = tab11a)
+
+addWorksheet(table_outputs, "Table 11b")
+writeData(table_outputs, sheet = "Table 11b", x = tab11b)
+
+addWorksheet(table_outputs, "Table 11c")
+writeData(table_outputs, sheet = "Table 11c", x = tab11c)
+
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
 
