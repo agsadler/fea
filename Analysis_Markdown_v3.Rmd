@@ -58,9 +58,9 @@ tab1_neighbourhood_data <- data_clean %>%
   ungroup() %>%
   left_join(tab1_total_vendors, by = c("country", "city")) %>%
   mutate(
-    higher_perc = Higher / total_vendors,
-    middle_perc = Middle / total_vendors,
-    lower_perc = Lower / total_vendors
+    higher_perc = round((Higher / total_vendors)*100,2),
+    middle_perc = round((Middle / total_vendors)*100,2),
+    lower_perc = round((Lower / total_vendors)*100,2)
   ) %>%
   select(country, city, total_vendors, Higher, higher_perc, Middle, middle_perc, Lower, lower_perc)
 
@@ -72,9 +72,9 @@ tab1_store_data <- data_clean %>%
   ungroup() %>%
   left_join(tab1_total_vendors, by = c("country", "city")) %>%
   mutate(
-    supermarket_perc = Supermarket / total_vendors,
-    mobile_vendor_perc = `Mobile vendor` / total_vendors,
-    stationary_small_vendor_perc = `Stationary small local vendor` / total_vendors
+    supermarket_perc = round((Supermarket / total_vendors)*100,2),
+    mobile_vendor_perc = round((`Mobile vendor` / total_vendors)*100,2),
+    stationary_small_vendor_perc = round((`Stationary small local vendor` / total_vendors)*100,2)
   ) %>%
   select(country, city, `Mobile vendor`, mobile_vendor_perc, `Stationary small local vendor`, stationary_small_vendor_perc, Supermarket, supermarket_perc,  )
 
@@ -83,94 +83,74 @@ tab1_store_data <- data_clean %>%
 tab1_data <- tab1_neighbourhood_data %>%
   left_join(tab1_store_data, by = c("country", "city"))
 
+# Calculate country-level totals
+tab1_country_totals <- tab1_data %>%
+  group_by(country) %>%
+  summarise(
+    total_vendors = sum(total_vendors, na.rm = TRUE),
+    Higher = sum(Higher, na.rm = TRUE),
+    Middle = sum(Middle, na.rm = TRUE),
+    Lower = sum(Lower, na.rm = TRUE),
+    `Mobile vendor` = sum(`Mobile vendor`, na.rm = TRUE),
+    `Stationary small local vendor` = sum(`Stationary small local vendor`, na.rm = TRUE),
+    Supermarket = sum(Supermarket, na.rm = TRUE)
+  ) %>%
+  mutate(
+    higher_perc = round((Higher / total_vendors)*100, 2),
+    middle_perc = round((Middle / total_vendors)*100, 2),
+    lower_perc = round((Lower / total_vendors)*100, 2),
+    mobile_vendor_perc = round((`Mobile vendor` / total_vendors)*100,2),
+    stationary_small_vendor_perc = round((`Stationary small local vendor` / total_vendors)*100,2),
+    supermarket_perc = round((Supermarket / total_vendors)*100,2),
+    city = "Total"  # Mark these as totals per country
+  )
 
-# Create the gt table
-tab1 <- tab1_data %>%
-  gt(rowname_col = "city", groupname_col = "country") %>%
-  cols_label(
-    city = "City",
-    total_vendors = "Total vendors",
-    Higher = "Higher",
-    higher_perc = " ",
-    Middle = "Middle",
-    middle_perc = " ",
-    Lower = "Lower",
-    lower_perc = " ",
-    `Mobile vendor` = "Mobile vendor",
-    mobile_vendor_perc = " ",
-    `Stationary small local vendor` = "Stationary small vendor",
-    stationary_small_vendor_perc = " ",
-    Supermarket = "Supermarket",
-    supermarket_perc = " "
+# Calculate overall totals across all countries
+tab1_overall_totals <- tab1_data %>%
+  summarise(
+    country = "Overall",
+    total_vendors = sum(total_vendors, na.rm = TRUE),
+    Higher = sum(Higher, na.rm = TRUE),
+    Middle = sum(Middle, na.rm = TRUE),
+    Lower = sum(Lower, na.rm = TRUE),
+    `Mobile vendor` = sum(`Mobile vendor`, na.rm = TRUE),
+    `Stationary small local vendor` = sum(`Stationary small local vendor`, na.rm = TRUE),
+    Supermarket = sum(Supermarket, na.rm = TRUE)
   ) %>%
-  fmt_percent(
-    columns = vars(higher_perc, middle_perc, lower_perc,
-                   mobile_vendor_perc, stationary_small_vendor_perc,
-                   supermarket_perc),
-    decimals = 0
+  mutate(
+    higher_perc = round((Higher / total_vendors)*100,2),
+    middle_perc = round((Middle / total_vendors)*100,2),
+    lower_perc = round((Lower / total_vendors)*100,2),
+    mobile_vendor_perc = round((`Mobile vendor` / total_vendors)*100,2),
+    stationary_small_vendor_perc = round((`Stationary small local vendor` / total_vendors)*100,2),
+    supermarket_perc = round((Supermarket / total_vendors)*100,2),
+    city = "Overall"
+  )
+
+# Append country-level totals and overall totals to the main data and clean up columns
+tab1_data_final <- tab1_data %>%
+  bind_rows(tab1_country_totals) %>%
+  bind_rows(tab1_overall_totals) %>%
+  mutate(
+    neighbourhood_higher = paste0(Higher, " (", higher_perc, "%)"),
+    neighbourhood_middle = paste0(Middle, " (", middle_perc, "%)"),
+    neighbourhood_lower = paste0(Lower, " (", lower_perc, "%)"),
+    storetype_mob = paste0(`Mobile vendor`, " (", mobile_vendor_perc, "%)"),
+    storetype_stat = paste0(`Stationary small local vendor`, " (", stationary_small_vendor_perc, "%)"),
+    storetype_super = paste0(Supermarket, " (", supermarket_perc, "%)")
   ) %>%
-  cols_merge(
-    columns = c("Higher", "higher_perc"),
-    pattern = "{1} ({2})"
-  ) %>%
-  cols_merge(
-    columns = c("Middle", "middle_perc"),
-    pattern = "{1} ({2})"
-  ) %>%
-  cols_merge(
-    columns = c("Lower", "lower_perc"),
-    pattern = "{1} ({2})"
-  ) %>%
-  cols_merge(
-    columns = c("Mobile vendor", "mobile_vendor_perc"),
-    pattern = "{1} ({2})"
-  ) %>%
-  cols_merge(
-    columns = c("Stationary small local vendor",
-                "stationary_small_vendor_perc"),
-    pattern = "{1} ({2})"
-  ) %>%
-  cols_merge(
-    columns = c("Supermarket", "supermarket_perc"),
-    pattern = "{1} ({2})"
-  ) %>%
-  summary_rows(
-    groups = everything(),
-    columns = vars(total_vendors, Higher, higher_perc,
-                   Middle, middle_perc,
-                   Lower, lower_perc, 
-                   `Mobile vendor`, mobile_vendor_perc,
-                   `Stationary small local vendor`,
-                   stationary_small_vendor_perc,
-                   Supermarket, supermarket_perc),
-    fns = list(total = ~sum(., na.rm = TRUE)),
-    formatter = fmt_number,
-    decimals = 0
-  ) %>%
-  grand_summary_rows(
-    columns = vars(total_vendors, Higher, higher_perc,
-                   Middle, middle_perc,
-                   Lower, lower_perc, 
-                   `Mobile vendor`, mobile_vendor_perc,
-                   `Stationary small local vendor`,
-                   stationary_small_vendor_perc,
-                   Supermarket, supermarket_perc),
-    fns = list(total = ~sum(., na.rm = TRUE)),
-    formatter = fmt_number,
-    decimals = 0
-  ) %>%
-  sub_missing() 
-  
+  select(country, city, total_vendors, 
+         neighbourhood_higher, neighbourhood_middle, neighbourhood_lower,
+         storetype_mob, storetype_stat, storetype_super)
+
 # Display the table
-tab1
+tab1_data_final
 
-# Note: I can't seem to get it to also have the percentage columns
-# Note: Also don't know how to do a grand total - keep getting errors
 
 # Export to table_outputs workbook
 
 addWorksheet(table_outputs, "Table 1")
-writeData(table_outputs, sheet = "Table 1", x = tab1)
+writeData(table_outputs, sheet = "Table 1", x = tab1_data_final)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 
@@ -187,12 +167,12 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ##### Overall results (variation between countries)
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
-# Create data frame of country and org_foods_count
+# Create data frame of country and org_products_count
 kruskal_country_data <- data_clean %>%
-  select(country, org_foods_count)
+  select(country, org_products_count)
 
 # Perform the Kruskal-Wallis test
-result_overall <- kruskal.test(org_foods_count ~ country, data = kruskal_country_data)
+result_overall <- kruskal.test(org_products_count ~ country, data = kruskal_country_data)
   
 # Display the results
 print(result_overall)
@@ -209,12 +189,12 @@ print(result_overall)
 brazil <- data_clean %>%
   filter(country == "Brazil")
 
-# Create data frame of city and org_foods_count
+# Create data frame of city and org_products_count
 kruskal_brazil_city_data <- brazil %>%
-  select(city, org_foods_count)
+  select(city, org_products_count)
 
 # Perform the Kruskal-Wallis test
-result_brazil <- kruskal.test(org_foods_count ~ city, data = kruskal_brazil_city_data)
+result_brazil <- kruskal.test(org_products_count ~ city, data = kruskal_brazil_city_data)
   
 # Display the results
 print(result_brazil)
@@ -229,12 +209,12 @@ print(result_brazil)
 india <- data_clean %>%
   filter(country == "India")
 
-# Create data frame of city and org_foods_count
+# Create data frame of city and org_products_count
 kruskal_india_city_data <- india %>%
-  select(city, org_foods_count)
+  select(city, org_products_count)
 
 # Perform the Kruskal-Wallis test
-result_india <- kruskal.test(org_foods_count ~ city, data = kruskal_india_city_data)
+result_india <- kruskal.test(org_products_count ~ city, data = kruskal_india_city_data)
   
 # Display the results
 print(result_india)
@@ -249,12 +229,12 @@ print(result_india)
 uk <- data_clean %>%
   filter(country == "UK")
 
-# Create data frame of city and org_foods_count
+# Create data frame of city and org_products_count
 kruskal_uk_city_data <- uk %>%
-  select(city, org_foods_count)
+  select(city, org_products_count)
 
 # Perform the Kruskal-Wallis test
-result_uk <- kruskal.test(org_foods_count ~ city, data = kruskal_uk_city_data)
+result_uk <- kruskal.test(org_products_count ~ city, data = kruskal_uk_city_data)
   
 # Display the results
 print(result_uk)
@@ -271,12 +251,12 @@ print(result_uk)
 rio <- data_clean %>%
   filter(city == "Rio de Janeiro")
 
-# Create data frame of circle and org_foods_count
+# Create data frame of circle and org_products_count
 kruskal_rio_data <- rio %>%
-  select(circle, org_foods_count)
+  select(circle, org_products_count)
 
 # Perform the Kruskal-Wallis test
-result_rio <- kruskal.test(org_foods_count ~ circle, data = kruskal_rio_data)
+result_rio <- kruskal.test(org_products_count ~ circle, data = kruskal_rio_data)
   
 # Display the results
 print(result_rio)
@@ -291,12 +271,12 @@ print(result_rio)
 saopaulo <- data_clean %>%
   filter(city == "Sao Paolo")
 
-# Create data frame of circle and org_foods_count
+# Create data frame of circle and org_products_count
 kruskal_saopaulo_data <- saopaulo %>%
-  select(circle, org_foods_count)
+  select(circle, org_products_count)
 
 # Perform the Kruskal-Wallis test
-result_saopaulo <- kruskal.test(org_foods_count ~ circle, data = kruskal_saopaulo_data)
+result_saopaulo <- kruskal.test(org_products_count ~ circle, data = kruskal_saopaulo_data)
   
 # Display the results
 print(result_saopaulo)
@@ -311,12 +291,12 @@ print(result_saopaulo)
 sinop <- data_clean %>%
   filter(city == "Sinop")
 
-# Create data frame of circle and org_foods_count
+# Create data frame of circle and org_products_count
 kruskal_sinop_data <- sinop %>%
-  select(circle, org_foods_count)
+  select(circle, org_products_count)
 
 # Perform the Kruskal-Wallis test
-result_sinop <- kruskal.test(org_foods_count ~ circle, data = kruskal_sinop_data)
+result_sinop <- kruskal.test(org_products_count ~ circle, data = kruskal_sinop_data)
   
 # Display the results
 print(result_sinop)
@@ -332,12 +312,12 @@ print(result_sinop)
 hyderabad <- data_clean %>%
   filter(city == "Hyderabad")
 
-# Create data frame of circle and org_foods_count
+# Create data frame of circle and org_products_count
 kruskal_hyderabad_data <- hyderabad %>%
-  select(circle, org_foods_count)
+  select(circle, org_products_count)
 
 # Perform the Kruskal-Wallis test
-result_hyderabad <- kruskal.test(org_foods_count ~ circle, data = kruskal_hyderabad_data)
+result_hyderabad <- kruskal.test(org_products_count ~ circle, data = kruskal_hyderabad_data)
   
 # Display the results
 print(result_hyderabad)
@@ -352,12 +332,12 @@ print(result_hyderabad)
 latur <- data_clean %>%
   filter(city == "Latur")
 
-# Create data frame of circle and org_foods_count
+# Create data frame of circle and org_products_count
 kruskal_latur_data <- latur %>%
-  select(circle, org_foods_count)
+  select(circle, org_products_count)
 
 # Perform the Kruskal-Wallis test
-result_latur <- kruskal.test(org_foods_count ~ circle, data = kruskal_latur_data)
+result_latur <- kruskal.test(org_products_count ~ circle, data = kruskal_latur_data)
   
 # Display the results
 print(result_latur)
@@ -372,12 +352,12 @@ print(result_latur)
 visakhapatnam <- data_clean %>%
   filter(city == "Visakhapatnam")
 
-# Create data frame of circle and org_foods_count
+# Create data frame of circle and org_products_count
 kruskal_visakhapatnam_data <- visakhapatnam %>%
-  select(circle, org_foods_count)
+  select(circle, org_products_count)
 
 # Perform the Kruskal-Wallis test
-result_visakhapatnam <- kruskal.test(org_foods_count ~ circle, data = kruskal_visakhapatnam_data)
+result_visakhapatnam <- kruskal.test(org_products_count ~ circle, data = kruskal_visakhapatnam_data)
   
 # Display the results
 print(result_visakhapatnam)
@@ -392,12 +372,12 @@ print(result_visakhapatnam)
 birmingham <- data_clean %>%
   filter(city == "Birmingham")
 
-# Create data frame of circle and org_foods_count
+# Create data frame of circle and org_products_count
 kruskal_birmingham_data <- birmingham %>%
-  select(circle, org_foods_count)
+  select(circle, org_products_count)
 
 # Perform the Kruskal-Wallis test
-result_birmingham <- kruskal.test(org_foods_count ~ circle, data = kruskal_birmingham_data)
+result_birmingham <- kruskal.test(org_products_count ~ circle, data = kruskal_birmingham_data)
   
 # Display the results
 print(result_birmingham)
@@ -412,12 +392,12 @@ print(result_birmingham)
 edinburgh <- data_clean %>%
   filter(city == "Edinburgh")
 
-# Create data frame of circle and org_foods_count
+# Create data frame of circle and org_products_count
 kruskal_edinburgh_data <- edinburgh %>%
-  select(circle, org_foods_count)
+  select(circle, org_products_count)
 
 # Perform the Kruskal-Wallis test
-result_edinburgh <- kruskal.test(org_foods_count ~ circle, data = kruskal_edinburgh_data)
+result_edinburgh <- kruskal.test(org_products_count ~ circle, data = kruskal_edinburgh_data)
   
 # Display the results
 print(result_edinburgh)
@@ -432,12 +412,12 @@ print(result_edinburgh)
 london <- data_clean %>%
   filter(city == "London")
 
-# Create data frame of circle and org_foods_count
+# Create data frame of circle and org_products_count
 kruskal_london_data <- london %>%
-  select(circle, org_foods_count)
+  select(circle, org_products_count)
 
 # Perform the Kruskal-Wallis test
-result_london <- kruskal.test(org_foods_count ~ circle, data = kruskal_london_data)
+result_london <- kruskal.test(org_products_count ~ circle, data = kruskal_london_data)
   
 # Display the results
 print(result_london)
@@ -967,8 +947,8 @@ tab2_neighbourhood_data <- data_clean %>%
     vendors = n(),
     count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
     org_vendor_perc = count_org_vendors / vendors,
-    median_org_foods_count = median(org_foods_count, na.rm = TRUE),
-    iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
+    median_org_products_count = median(org_products_count, na.rm = TRUE),
+    iqr_org_products_count = IQR(org_products_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
@@ -984,8 +964,8 @@ tab2_neighbourhood <- tab2_neighbourhood_data %>%
     vendors = "Total vendors",
     count_org_vendors = "Organic vendors, n(%)",
     org_vendor_perc = " ",
-    median_org_foods_count = "Organic sentinel foods, median (IQR)",
-    iqr_org_foods_count = " "
+    median_org_products_count = "Organic sentinel foods, median (IQR)",
+    iqr_org_products_count = " "
   ) %>%
   fmt_percent(
     columns = vars(org_vendor_perc),
@@ -996,13 +976,13 @@ tab2_neighbourhood <- tab2_neighbourhood_data %>%
     pattern = "{1} ({2})"
   ) %>%
   cols_merge(
-    columns = c("median_org_foods_count", "iqr_org_foods_count"),
+    columns = c("median_org_products_count", "iqr_org_products_count"),
     pattern = "{1} ({2})"
   ) %>%
   summary_rows(
     groups = everything(),
     columns = vars(vendors, count_org_vendors, org_vendor_perc,
-                   median_org_foods_count, iqr_org_foods_count),
+                   median_org_products_count, iqr_org_products_count),
     fns = list(total = ~sum(., na.rm = TRUE)),
     formatter = fmt_number,
     decimals = 0
@@ -1021,16 +1001,16 @@ addWorksheet(table_outputs, "Table 2 - neighbourhood")
 writeData(table_outputs, sheet = "Table 2 - neighbourhood", x = tab2_neighbourhood)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
-# create a variable to check how results would change if adding NA to org_foods_count for non organic vendors
-data_clean$org_foods_count2 <- as.numeric(data_clean$org_foods_count)
-data_clean$org_foods_count2[data_clean$org_vendor %in% 0] <- NA
+# create a variable to check how results would change if adding NA to org_products_count for non organic vendors
+data_clean$org_products_count2 <- as.numeric(data_clean$org_products_count)
+data_clean$org_products_count2[data_clean$org_vendor %in% 0] <- NA
 
 # check how results would change
 data_clean %>%
   group_by(country, city, circle) %>%
   summarise(
-    median_org_foods_count = median(org_foods_count2, na.rm = TRUE),
-    iqr_org_foods_count = IQR(org_foods_count2, na.rm = TRUE)
+    median_org_products_count = median(org_products_count2, na.rm = TRUE),
+    iqr_org_products_count = IQR(org_products_count2, na.rm = TRUE)
   )
 ```
 
@@ -1043,8 +1023,8 @@ tab2_city_data <- data_clean %>%
     vendors = n(),
     count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
     org_vendor_perc = count_org_vendors / vendors,
-    median_org_foods_count = median(org_foods_count, na.rm = TRUE),
-    iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
+    median_org_products_count = median(org_products_count, na.rm = TRUE),
+    iqr_org_products_count = IQR(org_products_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
@@ -1060,8 +1040,8 @@ tab2_city <- tab2_city_data %>%
     vendors = "Total vendors",
     count_org_vendors = "Organic vendors, n(%)",
     org_vendor_perc = " ",
-    median_org_foods_count = "Organic sentinel foods, median (IQR)",
-    iqr_org_foods_count = " "
+    median_org_products_count = "Organic sentinel foods, median (IQR)",
+    iqr_org_products_count = " "
   ) %>%
   fmt_percent(
     columns = vars(org_vendor_perc),
@@ -1072,13 +1052,13 @@ tab2_city <- tab2_city_data %>%
     pattern = "{1} ({2})"
   ) %>%
   cols_merge(
-    columns = c("median_org_foods_count", "iqr_org_foods_count"),
+    columns = c("median_org_products_count", "iqr_org_products_count"),
     pattern = "{1} ({2})"
   ) %>%
   summary_rows(
     groups = everything(),
     columns = vars(vendors, count_org_vendors, org_vendor_perc,
-                   median_org_foods_count, iqr_org_foods_count),
+                   median_org_products_count, iqr_org_products_count),
     fns = list(total = ~sum(., na.rm = TRUE)),
     formatter = fmt_number,
     decimals = 0
@@ -1104,8 +1084,8 @@ tab2_country_data <- data_clean %>%
     vendors = n(),
     count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
     org_vendor_perc = count_org_vendors / vendors,
-    median_org_foods_count = median(org_foods_count, na.rm = TRUE),
-    iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
+    median_org_products_count = median(org_products_count, na.rm = TRUE),
+    iqr_org_products_count = IQR(org_products_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
@@ -1127,8 +1107,8 @@ tab2_overall <- data_clean %>%
     vendors = n(),
     count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
     org_vendor_perc = count_org_vendors / vendors,
-    median_org_foods_count = median(org_foods_count, na.rm = TRUE),
-    iqr_org_foods_count = IQR(org_foods_count, na.rm = TRUE)
+    median_org_products_count = median(org_products_count, na.rm = TRUE),
+    iqr_org_products_count = IQR(org_products_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
@@ -1300,75 +1280,55 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 # Summarize the data grouped by `org_vendor` and `country`
 
+tab4_country_days <- data_clean %>%
+  group_by(country, org_vendor, days_open_category) %>%
+  summarise(vendor_count = n(), .groups = "drop") %>%
+  pivot_wider(names_from = days_open_category, values_from = vendor_count, 
+              values_fill = 0, # Fill missing combinations with 0
+              names_prefix = "open_") %>%
+  mutate(
+    total_vendors = rowSums(select(., starts_with("open_"))),
+    across(starts_with("open_"), ~ . / total_vendors * 100, .names = "percent_{col}"))
 
 
-tab4_country_data <- data_clean %>%
+tab4_country <- data_clean %>%
   group_by(country, org_vendor) %>%
   summarize(
     median_vendor_cashiers = median(vendor_cashiers, na.rm = TRUE),
     iqr_vendor_cashiers = IQR(vendor_cashiers, na.rm = TRUE),
     min_vendor_cashiers = min(vendor_cashiers, na.rm = TRUE),
     max_vendor_cashiers = max(vendor_cashiers, na.rm = TRUE),
-
-    median_days_open_count = median(days_open_count, na.rm = TRUE),
-    iqr_days_open_count = IQR(days_open_count, na.rm = TRUE),
-    min_days_open_count = min(days_open_count, na.rm = TRUE),
-    max_days_open_count = max(days_open_count, na.rm = TRUE),
     
     median_foods_count = median(foods_count, na.rm = TRUE),
     iqr_foods_count = IQR(foods_count, na.rm = TRUE),
     min_foods_count = min(foods_count, na.rm = TRUE),
     max_foods_count = max(foods_count, na.rm = TRUE)
   ) %>%
-  ungroup() 
-
-# Display the country-level results
-print(tab4_country_data)
-
-# Relabel organic vendor status
-tab4_country_data <- tab4_country_data %>%
+  ungroup() %>%
+  left_join(tab4a_country_days, by = c("country","org_vendor")) %>%
+  mutate(
+    vendor_cashiers_summary = paste0(median_vendor_cashiers, " (", iqr_vendor_cashiers, "), ", 
+                                     min_vendor_cashiers, " - ", max_vendor_cashiers),
+    foods_count_summary = paste0(median_foods_count, " (", iqr_foods_count, "), ",
+                                 min_foods_count, " - ", max_foods_count),
+    days_open_1_3_summary = paste0(`open_1-3`, " (", 
+                                   ifelse(`percent_open_1-3` < 1, round(`percent_open_1-3`, 1), round(`percent_open_1-3`)), 
+                                   "%)"),
+    days_open_4_5_summary = paste0(`open_4-5`, " (", 
+                                   ifelse(`percent_open_4-5` < 1, round(`percent_open_4-5`, 1), round(`percent_open_4-5`)), 
+                                   "%)"),
+    days_open_6_7_summary = paste0(`open_6-7`, " (", 
+                                   ifelse(`percent_open_6-7` < 1, round(`percent_open_6-7`, 1), round(`percent_open_6-7`)), 
+                                   "%)"),
+  ) %>%
+  select(country, org_vendor, vendor_cashiers_summary, days_open_1_3_summary, 
+         days_open_4_5_summary, days_open_6_7_summary, foods_count_summary) %>%
   mutate(org_vendor = recode(org_vendor, '1' = 'Organic','0' = 'Non-organic'))
 
-# Create the gt table
-tab4_country <- tab4_country_data %>%
-  gt(rowname_col = "org_vendor", groupname_col = c("country")) %>%
-  cols_label(
-    country = "Country",
-    org_vendor = "Organic status",
-    
-    median_vendor_cashiers = "Cashiers, median(IQR), min-max",
-    iqr_vendor_cashiers = " ",
-    min_vendor_cashiers = " ",
-    max_vendor_cashiers = " ",
-    
-    median_days_open_count = "Days open, median(IQR), min-max",
-    iqr_days_open_count = " ",
-    min_days_open_count = " ",
-    max_days_open_count = " ",
-    
-    median_foods_count = "Sentinel products sold, median(IQR), min-max",
-    iqr_foods_count = " ",
-    min_foods_count = " ",
-    max_foods_count = " "
-  ) %>%
-  cols_merge(
-    columns = c("median_vendor_cashiers", "iqr_vendor_cashiers", 
-                "min_vendor_cashiers", "max_vendor_cashiers"),
-    pattern = "{1}({2}), {3}-{4}"
-  ) %>%
-    cols_merge(
-    columns = c("median_days_open_count", "iqr_days_open_count", 
-                "min_days_open_count", "max_days_open_count"),
-    pattern = "{1}({2}), {3}-{4}"
-  ) %>%
-    cols_merge(
-    columns = c("median_foods_count", "iqr_foods_count", 
-                "min_foods_count", "max_foods_count"),
-    pattern = "{1}({2}), {3}-{4}"
-  ) %>%
-  sub_missing() 
+# Display the overall results
+print(tab4_country)
 
-#print(tab4_country)
+
 
 # Export to table_outputs workbook
 addWorksheet(table_outputs, "Table 4 - country")
@@ -1393,7 +1353,7 @@ tab4_overall_days <- data_clean %>%
     across(starts_with("open_"), ~ . / total_vendors * 100, .names = "percent_{col}"))
 
 
-tab4_overall_data <- data_clean %>%
+tab4_overall <- data_clean %>%
   group_by(org_vendor) %>%
   summarize(
     median_vendor_cashiers = median(vendor_cashiers, na.rm = TRUE),
@@ -1428,7 +1388,7 @@ tab4_overall_data <- data_clean %>%
   mutate(org_vendor = recode(org_vendor, '1' = 'Organic','0' = 'Non-organic'))
 
 # Display the overall results
-print(tab4_overall_data)
+print(tab4_overall)
 
 
 # Export to table_outputs workbook
@@ -2097,7 +2057,7 @@ create_category_summary <- function(data) {
   
   # PRODUCT-LEVEL SUMMARY
   # Define a function to summarize data for a given product and dataset
-  product_summary_list <- lapply(products, function(product) {
+  tab6_product_summary_list <- lapply(products, function(product) {
     data %>%
       summarise(
         org_count = sum(get(paste0(product, "_org")) == "Yes", na.rm = TRUE),
@@ -2129,7 +2089,7 @@ create_category_summary <- function(data) {
       select(category, product, everything())
   })
   
-  tab6_product_summary <- bind_rows(product_summary_list)
+  tab6_product_summary <- bind_rows(tab6_product_summary_list)
 
 # Apply the function to each product and combine the results
 #product_summary_list <- lapply(products, tab6_product_fn)
@@ -2698,7 +2658,287 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```
 
 
+### Product positioning - Table 12
 
 
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create new instance of dataset for Table 12
+tab12_data <- data_clean
+
+# Vector of products and countries
+products <- c("tom", "leaf", "ban", "man", "fj", "milk", "cof", "tea", "mill", "chic", "daal", "wht", "rice", "nut")
+countries <- c("Brazil", "India", "UK", "Overall")
+
+# Define a function to summarize data for a given product, dataset, and country
+product_position_fn <- function(data, product) {
+  data %>%
+    summarise(
+      org_count = sum(get(paste0(product, "_org")) == "Yes", na.rm = TRUE),
+      clustered_count = sum(get(paste0(product, "_org_arranged")) == "Clustered (alongside other organic and/or natural products)", na.rm = TRUE),
+      dispersed_count = sum(get(paste0(product, "_org_arranged")) == "Dispersed (alongside conventional products of the same category)", na.rm = TRUE),
+      mostlyorg_count = sum(get(paste0(product, "_org_arranged")) == "Most of the store is organic/natural", na.rm = TRUE)
+    ) %>%
+    mutate(
+      product = product,
+      clustered_perc = round((clustered_count / org_count) * 100, 2),
+      dispersed_perc = round((dispersed_count / org_count) * 100, 2),
+      mostlyorg_perc = round((mostlyorg_count / org_count) * 100, 2)
+    )
+}
+
+# Create a list to hold each country's data
+results_list <- lapply(countries, function(country) {
+  # Filter data by country
+  if (country == "Overall") {
+    data <- tab12_data  # Use overall data for the "Overall" case
+  } else {
+    data <- tab12_data %>% filter(country == !!country)  # Ensure 'country' matches the actual column name in your dataset
+  }
+  
+  # Create a summary for each product within the country
+  product_summaries <- lapply(products, function(product) {
+    product_position_fn(data, product) %>%
+      mutate(country = country)
+  })
+  
+  # Combine all product summaries for the country
+  bind_rows(product_summaries)
+})
+
+# Combine all country summaries into one data frame
+tab12_product_position <- bind_rows(results_list)
+
+# Calculate totals
+tab12_totals <- tab12_product_position %>%
+  group_by(country) %>%
+  summarise(
+    org_count = sum(org_count, na.rm = TRUE),
+    clustered_count = sum(clustered_count, na.rm = TRUE),
+    dispersed_count = sum(dispersed_count, na.rm = TRUE),
+    mostlyorg_count = sum(mostlyorg_count, na.rm = TRUE)
+  ) %>%
+  mutate(
+    product = "Total",
+    clustered_perc = round((clustered_count / org_count) * 100, 2),
+    dispersed_perc = round((dispersed_count / org_count) * 100, 2),
+    mostlyorg_perc = round((mostlyorg_count / org_count) * 100, 2)
+  )
+
+# Add totals row
+tab12_product_with_total <- bind_rows(tab12_product_position, tab12_totals)
+
+# Combine columns
+tab12_product_with_total <- tab12_product_with_total %>%
+  mutate(
+    clustered = paste0(clustered_count, " (", clustered_perc, "%)"),
+    dispersed = paste0(dispersed_count, " (", dispersed_perc, "%)"),
+    mostlyorg = paste0(mostlyorg_count, " (", mostlyorg_perc, "%)")
+  ) %>%
+  select(product, country, clustered, dispersed, mostlyorg)
+
+# Reshape data to create a separate column for each country and sub-columns for clustered, dispersed, and mostlyorg
+tab12 <- tab12_product_with_total %>%
+  pivot_wider(
+    id_cols = product,
+    names_from = country,
+    values_from = c(clustered, dispersed, mostlyorg),
+    names_glue = "{country}_{.value}"  # This creates sub-columns for each country and type
+  ) %>%
+  select(product, Overall_clustered, Overall_dispersed, Overall_mostlyorg,
+         Brazil_clustered, Brazil_dispersed, Brazil_mostlyorg,
+         India_clustered, India_dispersed, India_mostlyorg,
+         UK_clustered, UK_dispersed, UK_mostlyorg,
+  )
+
+# View the final table with totals row
+tab12
+
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 12")
+writeData(table_outputs, sheet = "Table 12", x = tab12)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+
+
+### Product positioning - Table 13
+
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create new instance of dataset for Table 13
+tab13_data <- data_clean
+
+# 1. Create table that counts the number of sentinel products for each STORE position
+
+  # Create summary columns
+  
+  tab13a <- tab13_data %>%
+    select(country, org_products_count, store_pos_front_count, store_pos_mid_count, store_pos_back_count) %>%
+    group_by(country) %>%
+    summarise(
+      org_count = sum(org_products_count, na.rm = TRUE),
+      front_count = sum(store_pos_front_count, na.rm = TRUE),
+      front_perc = round((front_count/org_count)*100, 2),
+      mid_count = sum(store_pos_mid_count, na.rm = TRUE),
+      mid_perc = round((mid_count/org_count)*100, 2),
+      back_count = sum(store_pos_back_count, na.rm = TRUE),
+      back_perc = round((back_count/org_count)*100, 2)
+    )
+  
+  # Calculate 'Overall' row by summing all countries together
+  overall_row <- tab13_data %>%
+    summarise(
+      country = "Overall",  # Add "Overall" label
+      org_count = sum(org_products_count, na.rm = TRUE),
+      front_count = sum(store_pos_front_count, na.rm = TRUE),
+      front_perc = round((front_count / org_count) * 100, 2),
+      mid_count = sum(store_pos_mid_count, na.rm = TRUE),
+      mid_perc = round((mid_count / org_count) * 100, 2),
+      back_count = sum(store_pos_back_count, na.rm = TRUE),
+      back_perc = round((back_count / org_count) * 100, 2)
+    ) 
+  
+  # Bind the 'Overall' row to the original table
+  tab13a <- bind_rows(tab13a, overall_row) %>%
+    select(country, front_count, front_perc, mid_count, mid_perc, back_count, back_perc) %>%
+    # Pivot to longer format to consolidate absolute and relative columns by position
+    pivot_longer(
+      cols = -country,
+      names_to = c("Store_Position", ".value"),
+      names_sep = "_"
+    ) %>% 
+    # Pivot to wider format to make countries into columns with count and perc as sub-columns
+    pivot_wider(
+      names_from = country,
+      values_from = c(count, perc),
+      names_glue = "{country}_{.value}"
+    ) 
+  
+  # Reorder columns
+  tab13a <- tab13a %>%
+    select(Store_Position, Overall_count, Overall_perc, Brazil_count, Brazil_perc,
+           India_count, India_perc, UK_count, UK_perc)
+  
+  # View the final table
+  tab13a
+
+# 2. Create table that counts the number of sentinel products for each SHELF position
+
+  # Create summary columns
+  
+  tab13b <- tab13_data %>%
+    select(country, org_products_count, shelf_pos_upper_count, shelf_pos_mid_count, shelf_pos_lower_count) %>%
+    group_by(country) %>%
+    summarise(
+      org_count = sum(org_products_count, na.rm = TRUE),
+      upper_count = sum(shelf_pos_upper_count, na.rm = TRUE),
+      upper_perc = round((upper_count/org_count)*100, 2),
+      mid_count = sum(shelf_pos_mid_count, na.rm = TRUE),
+      mid_perc = round((mid_count/org_count)*100, 2),
+      lower_count = sum(shelf_pos_lower_count, na.rm = TRUE),
+      lower_perc = round((lower_count/org_count)*100, 2)
+    )
+  
+  # Calculate 'Overall' row by summing all countries together
+  overall_row <- tab13_data %>%
+    summarise(
+      country = "Overall",  # Add "Overall" label
+      org_count = sum(org_products_count, na.rm = TRUE),
+      upper_count = sum(shelf_pos_upper_count, na.rm = TRUE),
+      upper_perc = round((upper_count / org_count) * 100, 2),
+      mid_count = sum(shelf_pos_mid_count, na.rm = TRUE),
+      mid_perc = round((mid_count / org_count) * 100, 2),
+      lower_count = sum(shelf_pos_lower_count, na.rm = TRUE),
+      lower_perc = round((lower_count / org_count) * 100, 2)
+    ) 
+  
+  # Bind the 'Overall' row to the original table
+  tab13b <- bind_rows(tab13b, overall_row) %>%
+    select(country, upper_count, upper_perc, mid_count, mid_perc, lower_count, lower_perc) %>%
+    # Pivot to longer format to consolidate absolute and relative columns by position
+    pivot_longer(
+      cols = -country,
+      names_to = c("Shelf_Position", ".value"),
+      names_sep = "_"
+    ) %>% 
+    # Pivot to wider format to make countries into columns with count and perc as sub-columns
+    pivot_wider(
+      names_from = country,
+      values_from = c(count, perc),
+      names_glue = "{country}_{.value}"
+    ) 
+  
+  # Reorder columns
+  tab13b <- tab13b %>%
+    select(Shelf_Position, Overall_count, Overall_perc, Brazil_count, Brazil_perc,
+           India_count, India_perc, UK_count, UK_perc)
+  
+  # View the final table
+  tab13b
+  
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 13a")
+writeData(table_outputs, sheet = "Table 13a", x = tab13a)
+addWorksheet(table_outputs, "Table 13b")
+writeData(table_outputs, sheet = "Table 13b", x = tab13b)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+
+### Discounts - Table 14
+
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create new instance of dataset for Table 14
+tab14_data <- data_clean %>%
+  select(country, org_products_count, tom_org_discount, leaf_org_discount, ban_org_discount, man_org_discount,
+         fj_org_discount, milk_org_discount, cof_org_discount, tea_org_discount, mill_org_discount, 
+         chic_org_discount, daal_org_discount, wht_org_discount, rice_org_discount, nut_org_discount)
+
+
+discount_vector <- c("tom_org_discount", "leaf_org_discount", "ban_org_discount", "man_org_discount",
+         "fj_org_discount", "milk_org_discount", "cof_org_discount", "tea_org_discount", "mill_org_discount", 
+         "chic_org_discount", "daal_org_discount", "wht_org_discount", "rice_org_discount", "nut_org_discount")
+  
+tab14_data <- tab14_data %>%
+  mutate(discount_count = rowSums(select(., all_of(discount_vector)) == "Yes", na.rm = TRUE))
+
+# Create a table that summarises the number and percentage of organic sentinel products with a discount
+tab14 <- tab14_data %>%
+  group_by(country) %>%
+  summarise(
+    discount = sum(discount_count, na.rm = TRUE),
+    org_count = sum(org_products_count, na.rm = TRUE),
+    discount_perc = round((discount/org_count)*100, 2)
+  )
+
+# Calculate 'Overall' row by summing all countries together
+overall_row <- tab14_data %>%
+  summarise(
+    country = "Overall",  # Add "Overall" label
+    discount = sum(discount_count, na.rm = TRUE),
+    org_count = sum(org_products_count, na.rm = TRUE),
+    discount_perc = round((discount/org_count)*100, 2)
+  ) 
+
+# Bind the 'Overall' row to the original table
+tab14 <- bind_rows(tab14, overall_row) %>%
+  select(country, discount, org_count, discount_perc)
+
+
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 14")
+writeData(table_outputs, sheet = "Table 14", x = tab14)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
 
 

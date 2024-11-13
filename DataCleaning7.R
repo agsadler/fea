@@ -1395,7 +1395,7 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
   combined_data <- combined_data %>%
         mutate(org_products_count = rowSums(select(., all_of(org_products_vector)) == "Yes", na.rm = TRUE))
   
-  # Create org_vendor binary variable for if vendors sell at least one organic sentinel food
+  # Create org_vendor binary variable for if vendors sell at least one organic sentinel product
 
   combined_data <- combined_data %>%
     mutate(org_vendor = case_when(
@@ -2054,6 +2054,32 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
   
   
   
+  # Create variables to count per vendor the number of products at in each store position
+  
+  store_pos_vector <- c("tom_org_loc", "leaf_org_loc", "ban_org_loc", "man_org_loc",
+                        "fj_org_loc", "milk_org_loc", "cof_org_loc", "tea_org_loc",
+                        "mill_org_loc", "chic_org_loc", "daal_org_loc", "wht_org_loc", "rice_org_loc", "nut_org_loc")
+  
+  combined_data <- combined_data %>%
+    mutate(
+      store_pos_front_count = rowSums(select(., all_of(store_pos_vector)) == "Front", na.rm = TRUE),
+      store_pos_mid_count = rowSums(select(., all_of(store_pos_vector)) == "Middle", na.rm = TRUE),
+      store_pos_back_count = rowSums(select(., all_of(store_pos_vector)) == "Back/periphery", na.rm = TRUE)
+      )
+
+  # Create variables to count per vendor the number of products at in each shelf position
+  
+  shelf_pos_vector <- c("tom_org_shelf", "leaf_org_shelf", "ban_org_shelf", "man_org_shelf",
+                        "fj_org_shelf", "milk_org_shelf", "cof_org_shelf", "tea_org_shelf",
+                        "mill_org_shelf", "chic_org_shelf", "daal_org_shelf", "wht_org_shelf", 
+                        "rice_org_shelf", "nut_org_shelf")
+  
+  combined_data <- combined_data %>%
+    mutate(
+      shelf_pos_upper_count = rowSums(select(., all_of(shelf_pos_vector)) == "Upper", na.rm = TRUE),
+      shelf_pos_mid_count = rowSums(select(., all_of(shelf_pos_vector)) == "Middle", na.rm = TRUE),
+      shelf_pos_lower_count = rowSums(select(., all_of(shelf_pos_vector)) == "Lower", na.rm = TRUE)
+    )
   
   
   
