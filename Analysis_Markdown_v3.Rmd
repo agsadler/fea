@@ -17,6 +17,7 @@ library(readxl)
 library(readr)
 library(stats)
 library(tidyr)
+library(ggplot2)
 
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -1305,7 +1306,7 @@ tab4_country <- data_clean %>%
     max_foods_count = max(foods_count, na.rm = TRUE)
   ) %>%
   ungroup() %>%
-  left_join(tab4a_country_days, by = c("country","org_vendor")) %>%
+  left_join(tab4_country_days, by = c("country","org_vendor")) %>%
   mutate(
     vendor_cashiers_summary = paste0(median_vendor_cashiers, " (", iqr_vendor_cashiers, "), ", 
                                      min_vendor_cashiers, " - ", max_vendor_cashiers),
@@ -1602,6 +1603,66 @@ tab5_city <- tab5_city_data %>%
   
 # Display the table
 tab5_city
+
+
+# CREATE A BOXPLOT
+
+# Create table in correct data format
+tab5_boxplot <- tab5_city_data %>%
+  # Calculate Q1 and Q3
+  mutate(
+    q1_org_rice = median_org_rice - (iqr_org_rice / 2),
+    q3_org_rice = median_org_rice + (iqr_org_rice / 2),
+    q1_conv_rice = median_conv_rice - (iqr_conv_rice / 2),
+    q3_conv_rice = median_conv_rice + (iqr_conv_rice / 2),  
+    ) %>%
+  # Select necessary columns
+  select(
+    country, city, 
+    min_org_rice, q1_org_rice, median_org_rice, q3_org_rice, max_org_rice,
+    min_conv_rice, q1_conv_rice, median_conv_rice, q3_conv_rice, max_conv_rice
+    ) %>%
+  # Reshape into long format
+  pivot_longer(
+    cols = c(min_org_rice, q1_org_rice, median_org_rice, q3_org_rice, max_org_rice,
+             min_conv_rice, q1_conv_rice, median_conv_rice, q3_conv_rice, max_conv_rice), # Include all relevant columns
+    names_to = c(".value", "Type"),                # Separate names into '.value' (metrics) and 'Type'
+    names_pattern = "(.*)_(org|conv)"              # Pattern: metric_(org|conv)
+  )
+
+# Create boxplot  
+ggplot(tab5_boxplot, aes(x = city, fill = Type)) +
+  geom_boxplot(
+    aes(
+      ymin = min,
+      lower = q1,
+      middle = median,
+      upper = q3,
+      ymax = max
+    ),
+    stat = "identity",
+    position = position_dodge2(padding = 0.3) # Dodge to avoid overlapping between cities
+  ) +
+  facet_wrap(~ country, scales = "free_x") + # Separate panels by country
+  labs(
+    title = "Box Plot of Organic vs Conventional Rice Prices",
+    x = "City",
+    y = "Price (per kg, USD)"
+  ) +
+  scale_fill_manual(
+    values = c("org" = "skyblue", "conv" = "lightgreen"),
+    labels = c("Organic", "Conventional")
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), # Rotated x-axis labels
+    strip.text = element_text(size = 12, face = "bold"), # Facet titles
+    legend.position = "bottom", # Move legend to the bottom
+    legend.title = element_blank() # Remove legend title
+  )
+  
+# need to extend the y-axis for visibility
+
 
 # Export to table_outputs workbook
 addWorksheet(table_outputs, "Table 5 - city")
