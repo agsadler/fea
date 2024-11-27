@@ -929,20 +929,19 @@ print(p_values_chi_city_df)
 ```
 
 
-#### Table 2
+#### Table 2 - Availability
 
-##### For each neighbourhood within each city
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Define order of neighbourhood variable
 circle_order <- c("Higher","Middle","Lower")
   
 # Convert the circle column to a factor with the specified levels
-data_clean <- data_clean %>%
+tab2_data <- data_clean %>%
   mutate(circle = factor(circle, levels = circle_order))
 
-# Median and IQR number of organic sentinel foods
-tab2_neighbourhood_data <- data_clean %>%
+# Create table of neighbourhood data
+tab2_neighbourhood <- tab2_data %>%
   group_by(country, city, circle) %>%
   summarise(
     vendors = n(),
@@ -953,74 +952,10 @@ tab2_neighbourhood_data <- data_clean %>%
   ) %>%
   ungroup()
 
-print(tab2_neighbourhood_data)
-
-# Create the gt table
-tab2_neighbourhood <- tab2_neighbourhood_data %>%
-  gt(rowname_col = "circle", groupname_col = c("country","city")) %>%
-  cols_label(
-    country = "Country",
-    city = "City",
-    circle = "Neighbourhood",
-    vendors = "Total vendors",
-    count_org_vendors = "Organic vendors, n(%)",
-    org_vendor_perc = " ",
-    median_org_products_count = "Organic sentinel foods, median (IQR)",
-    iqr_org_products_count = " "
-  ) %>%
-  fmt_percent(
-    columns = vars(org_vendor_perc),
-    decimals = 0
-  ) %>%
-  cols_merge(
-    columns = c("count_org_vendors", "org_vendor_perc"),
-    pattern = "{1} ({2})"
-  ) %>%
-  cols_merge(
-    columns = c("median_org_products_count", "iqr_org_products_count"),
-    pattern = "{1} ({2})"
-  ) %>%
-  summary_rows(
-    groups = everything(),
-    columns = vars(vendors, count_org_vendors, org_vendor_perc,
-                   median_org_products_count, iqr_org_products_count),
-    fns = list(total = ~sum(., na.rm = TRUE)),
-    formatter = fmt_number,
-    decimals = 0
-  ) %>%
-  sub_missing() 
-  
-# Display the table
-tab2_neighbourhood
-
-# Note: I can't seem to get it to also have the percentage columns in the summary
-# Note: Also don't know how to do a grand total - keep getting errors
-
-
-# Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 2 - neighbourhood")
-writeData(table_outputs, sheet = "Table 2 - neighbourhood", x = tab2_neighbourhood)
-saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
-
-# create a variable to check how results would change if adding NA to org_products_count for non organic vendors
-data_clean$org_products_count2 <- as.numeric(data_clean$org_products_count)
-data_clean$org_products_count2[data_clean$org_vendor %in% 0] <- NA
-
-# check how results would change
-data_clean %>%
-  group_by(country, city, circle) %>%
-  summarise(
-    median_org_products_count = median(org_products_count2, na.rm = TRUE),
-    iqr_org_products_count = IQR(org_products_count2, na.rm = TRUE)
-  )
-```
-
-##### For each city within each country
-```{r echo = FALSE, message = FALSE, warning = FALSE}
-# N, %, median and IQR - city level
-tab2_city_data <- data_clean %>%
+# Create city rows
+tab2_city <- tab2_data %>%
   group_by(country, city) %>%
-  summarize(
+  summarise(
     vendors = n(),
     count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
     org_vendor_perc = count_org_vendors / vendors,
@@ -1029,59 +964,10 @@ tab2_city_data <- data_clean %>%
   ) %>%
   ungroup()
 
-print(tab2_city_data)
-
-
-# Create the gt table
-tab2_city <- tab2_city_data %>%
-  gt(rowname_col = "city", groupname_col = c("country")) %>%
-  cols_label(
-    country = "Country",
-    city = "City",
-    vendors = "Total vendors",
-    count_org_vendors = "Organic vendors, n(%)",
-    org_vendor_perc = " ",
-    median_org_products_count = "Organic sentinel foods, median (IQR)",
-    iqr_org_products_count = " "
-  ) %>%
-  fmt_percent(
-    columns = vars(org_vendor_perc),
-    decimals = 0
-  ) %>%
-  cols_merge(
-    columns = c("count_org_vendors", "org_vendor_perc"),
-    pattern = "{1} ({2})"
-  ) %>%
-  cols_merge(
-    columns = c("median_org_products_count", "iqr_org_products_count"),
-    pattern = "{1} ({2})"
-  ) %>%
-  summary_rows(
-    groups = everything(),
-    columns = vars(vendors, count_org_vendors, org_vendor_perc,
-                   median_org_products_count, iqr_org_products_count),
-    fns = list(total = ~sum(., na.rm = TRUE)),
-    formatter = fmt_number,
-    decimals = 0
-  ) %>%
-  sub_missing() 
-  
-# Display the table
-tab2_city
-
-# Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 2 - city")
-writeData(table_outputs, sheet = "Table 2 - city", x = tab2_city)
-saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
-
-```
-
-##### For each country
-```{r echo = FALSE, message = FALSE, warning = FALSE}
-# N, %, median and IQR - country level
-tab2_country_data <- data_clean %>%
+# Create country rows
+tab2_country <- tab2_data %>%
   group_by(country) %>%
-  summarize(
+  summarise(
     vendors = n(),
     count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
     org_vendor_perc = count_org_vendors / vendors,
@@ -1090,38 +976,134 @@ tab2_country_data <- data_clean %>%
   ) %>%
   ungroup()
 
-# Print output
-print(tab2_country_data)
+# Combine all three tables (neighbourhood, city, and country) into one
+combined_tab2 <- bind_rows(
+  tab2_neighbourhood %>%
+    mutate(level = "Neighbourhood"),
+  tab2_city %>%
+    mutate(level = "City"),
+  tab2_country %>%
+    mutate(level = "Country")
+)
+
+# Create a custom order for the 'level' column to ensure Neighbourhood rows come first, then City, and then Country
+combined_tab2$level <- factor(combined_tab2$level, levels = c("Neighbourhood", "City", "Country"))
+
+# Sort the combined data by country, city, and the custom level order
+tab2_final <- combined_tab2 %>%
+  arrange(country, city, level)
+
+# Merge columns
+tab2_final <- tab2_final %>%
+  mutate(
+    org = paste0(count_org_vendors, " (", round(org_vendor_perc * 100, 2), "%)"),
+    sentinels = paste0(median_org_products_count, " (", iqr_org_products_count, ")")
+  ) %>%
+  select(country, city, circle, vendors, org, sentinels)
+
+# Print table
+print(tab2_final)
+
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 2 - country")
-writeData(table_outputs, sheet = "Table 2 - country", x = tab2_country_data)
+addWorksheet(table_outputs, "Table 2")
+writeData(table_outputs, sheet = "Table 2", x = tab2_final)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 
-##### Overall
+
+
+
+
+#### Table 2S - Availability without beverages
+
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
-# N, %, median and IQR - country level
-tab2_overall <- data_clean %>%
-  summarize(
+
+# Define order of neighbourhood variable
+circle_order <- c("Higher","Middle","Lower")
+  
+# Convert the circle column to a factor with the specified levels
+tab2s_data <- data_clean %>%
+  mutate(circle = factor(circle, levels = circle_order))
+
+# Filter to only foods, not beverages
+
+# Create table of neighbourhood data
+tab2s_neighbourhood <- tab2s_data %>%
+  group_by(country, city, circle) %>%
+  summarise(
     vendors = n(),
-    count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
-    org_vendor_perc = count_org_vendors / vendors,
-    median_org_products_count = median(org_products_count, na.rm = TRUE),
-    iqr_org_products_count = IQR(org_products_count, na.rm = TRUE)
+    count_org_vendors_foodonly = sum(org_vendor_foodonly == 1, na.rm = TRUE),
+    org_vendor_perc_foodonly = count_org_vendors_foodonly / vendors,
+    median_org_products_count_foodonly = median(org_foodonly_count, na.rm = TRUE),
+    iqr_org_products_count_foodonly = IQR(org_foodonly_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
-# Print
-print(tab2_overall)
+# Create city rows
+tab2s_city <- tab2s_data %>%
+  group_by(country, city) %>%
+  summarise(
+    vendors = n(),
+    count_org_vendors_foodonly = sum(org_vendor_foodonly == 1, na.rm = TRUE),
+    org_vendor_perc_foodonly = count_org_vendors_foodonly / vendors,
+    median_org_products_count_foodonly = median(org_foodonly_count, na.rm = TRUE),
+    iqr_org_products_count_foodonly = IQR(org_foodonly_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Create country rows
+tab2s_country <- tab2s_data %>%
+  group_by(country) %>%
+  summarise(
+    vendors = n(),
+    count_org_vendors_foodonly = sum(org_vendor_foodonly == 1, na.rm = TRUE),
+    org_vendor_perc_foodonly = count_org_vendors_foodonly / vendors,
+    median_org_products_count_foodonly = median(org_foodonly_count, na.rm = TRUE),
+    iqr_org_products_count_foodonly = IQR(org_foodonly_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Combine all three tables (neighbourhood, city, and country) into one
+combined_tab2s <- bind_rows(
+  tab2s_neighbourhood %>%
+    mutate(level = "Neighbourhood"),
+  tab2s_city %>%
+    mutate(level = "City"),
+  tab2s_country %>%
+    mutate(level = "Country")
+)
+
+# Create a custom order for the 'level' column to ensure Neighbourhood rows come first, then City, and then Country
+combined_tab2s$level <- factor(combined_tab2s$level, levels = c("Neighbourhood", "City", "Country"))
+
+# Sort the combined data by country, city, and the custom level order
+tab2s_final <- combined_tab2s %>%
+  arrange(country, city, level)
+
+# Merge columns
+tab2s_final <- tab2s_final %>%
+  mutate(
+    org_foodonly = paste0(count_org_vendors_foodonly, " (", round(org_vendor_perc_foodonly * 100, 2), "%)"),
+    sentinels_foodonly = paste0(median_org_products_count_foodonly, " (", iqr_org_products_count_foodonly, ")")
+  ) %>%
+  select(country, city, circle, vendors, org_foodonly, sentinels_foodonly)
+
+# Print table
+print(tab2s_final)
+
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 2 - overall")
-writeData(table_outputs, sheet = "Table 2 - overall", x = tab2_overall)
+addWorksheet(table_outputs, "Table 2s")
+writeData(table_outputs, sheet = "Table 2s", x = tab2s_final)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
+
+
+
+
 
 
 ### Exploratory Analysis: Hypothesis 1b. The count and proportion of vendors selling multiple organic options for at least one sentinel food will be highest in the United Kingdom, in larger cities within a given country, and in higher-income neighbourhoods within a given city.
@@ -1272,6 +1254,11 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```
 
 
+
+
+
+
+
 ### Exploratory Analysis: Organic versus non-organic vendor characteristics
 
 #### Table 4
@@ -1397,6 +1384,7 @@ addWorksheet(table_outputs, "Table 4 - overall")
 writeData(table_outputs, sheet = "Table 4 - overall", x = tab4_overall)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
+
 
 
 ## 2. How affordable is a sentinel organic food (rice) compared to a non-organic sentinel food (rice) in urban food environments? How does this vary across different geographic contexts?
@@ -2410,6 +2398,29 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 tab9_data <- data_clean
 
 
+
+tab9_data2 <- tab9_data
+
+
+# Vector with certification types variables
+vector_certifcols2 <- tab9_data2 %>% 
+  select(contains("_org_certif"))
+
+tab9_data2 <- tab9_data2 %>%
+  select(id, country, city, contains("_org_certif"))
+
+
+
+certifications <- createWorkbook()
+addWorksheet(certifications, "Certifications")
+writeData(certifications, sheet = "Certifications", x = tab9_data2)
+saveWorkbook(certifications, "C:/Users/s1985751/Documents/GitHub/fea/certifications.xlsx", overwrite = TRUE)
+
+
+
+
+
+
 # Vector with certification types variables
 vector_certifcols <- tab9_data %>% 
   select(contains("_org_certif")) %>%
@@ -2961,7 +2972,6 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 
 ```
 
-
 ### Discounts - Table 14
 
 
@@ -3012,4 +3022,54 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 
 ```
 
+
+## Supplementary Tables
+
+### Table S3 - Vendors closed or refused
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+
+# Load data on closed vendors
+closed_data <- read.xlsx("~/GitHub/fea/Outputs/proceed_data_formatted_27.11.24.xlsx", sheet = "proceed_data")
+
+# Summarise closed vendors
+tab_closed <- closed_data %>%
+  select(country, city, proceed) %>%
+  group_by(country, city, proceed) %>%
+  count() %>%
+  pivot_wider(
+    names_from = proceed,
+    values_from = n,
+    values_fill = list(n = 0)  # Fill missing counts with 0
+  )
+
+# Summarise proceed column - note that this includes only 'Yes' to proceed because rest was deleted in data cleaning process
+tab_open <- data_clean %>%
+  select(country, city, proceed) %>%
+  group_by(country, city, proceed) %>%
+  count() %>%
+  pivot_wider(
+    names_from = proceed,
+    values_from = n,
+    values_fill = list(n = 0)  # Fill missing counts with 0
+  )
+
+# Combine tables and aggregate
+combined_tab_proceed <- bind_rows(
+  tab_closed,
+  tab_open
+) %>%
+  group_by(country, city) %>%
+  summarise(
+    across(starts_with("Yes"), sum, na.rm = TRUE),  # Sum up the 'Yes' values
+    across(starts_with("No"), sum, na.rm = TRUE),  # Sum up the 'No' values
+    across(starts_with("NA"), sum, na.rm = TRUE))  # Sum up the 'No' values
+
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table S3")
+writeData(table_outputs, sheet = "Table S3", x = combined_tab_proceed)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+```
 

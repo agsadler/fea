@@ -649,38 +649,95 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
       print(all_responses_cert$response) 
     
       
-    # Rename duplicate or misspelled certifications
+    # Rename duplicate or misspelled certifications; irrelevant ones renamed to 'delete'
       
       # List of gsub replacements to be made
       replacements_cert <- list(
+        "ADITI" = "delete", # Certification agency not certification type
+        "Araku" = "delete", # Brand name not certification
         "B-corp" = "B-Corp",
+        "BR-Bio 122 Brazil Agriculture" = "delete", # Registration details not certification
+        "Bio" = "delete", # Checked and not a real certification, just a marketing logo
         "buy social" = "Buy Social",
-        "certified b" = "Certified B",
+        "CERES Certified" = "delete", # Certification agency not certification type
+        "CSA" = "delete", # Certification agency not certification type 
+        "certified b" = "B-Corp",
+        "Donâ€™t know not available" = "delete",
+        "Eco Ceri; 100% organic"  = "Ecocert",
+        "Eco Cert; 100% organic" = "Ecocert",
+        "Eco cert; 100% organic" = "Ecocert",
         "Eco Ceri" = "Ecocert",
         "Eco Cert" = "Ecocert",
         "Eco cert" = "Ecocert",
+        "Eco cert" = "Ecocert",
+        "Eco cert; eurecicle" = "Ecocert; Eureciclo",
         "eurecicle" = "Eureciclo",
         "EuReciclo" = "Eureciclo",
         "Eu reciclo" = "Eureciclo",
         "Fair for life" = "Fair for Life",
+        "Fair Wild, Fair for Life, B-corp" = "Fair Wild, Fair for Life, B-Corp",
+        "Fair for life, certified b, 1% for the planet" = "Fair for Life, B-Corp, 1%",
+        "Fair for life; certified B; 1% for the planet;" = "Fair for Life, B-Corp, 1%",
+        "Fair trade" = "Fairtrade",
+        "Fair trade, certified b, buy social" = "Fairtrade, B-Corp", # Buy Social is not a certification
+        "Fairtrade, B-corp" = "Fairtrade, B-Corp",
+        "Fssai" = "delete", # Food safety approval not certification
+        "Girjan" = "delete", # Brand not certification
+        "Greenfield organics" = "delete", # Brand not certification
+        "Indocert" = "delete", # Certification agency not certification type
+        "Irish organic association" = "delete", # Certification agency not certification type
+        "KP; Eu reciclo; Ecocert, BSCA; Rainforest alliance;" = "Ecocert; Eureciclo; Rainforest Alliance",
+        "Lacon quality certification" = "delete", # Certification agency not certification type
+        "Local certification (see photo)" = "delete",
+        "Mitra organics" = "delete", # Brand not certification
         "Rainforest alliance" = "Rainforest Alliance",
-        "N SAI" = "NSAI",
-        "N sai" = "NSAI",
+        "N SAI" = "delete", # Seed association not certification
+        "N sai" = "delete", # Seed association not certification
+        "NSAI" = "delete", # Seed association not certification
+        "Natura" = "delete", # Brand not certification
+        "Natural" = "delete", # Brand not certification
+        "No artificial colours, no added preservatives" = "delete", # Not certification
+        "One Cert" = "delete", # Certification agency not certification type
+        "Please, double-check details with my previous entry of the same product from Sainsbury." = "delete",
         "Red tractor" = "Red Tractor",
-        "Sopa" = "SOPA"
+        "Red tractor; live better - source of protein" = "delete",
+        "Sopa" = "SOPA",
+        "Sri sai proteen Malt" = "delete", # Not a certification
+        "SS Natural Health care product" = "delete", # Not a certification
+        "Vegan; plant-based plastic free packaging" = "delete", # Not a certification
+        "Zero - pesticide free food" = "delete", # Not a certification
+        "Zero" = "delete" # Not a certification
       )
       
       # Sort replacements by length of pattern in descending order
       sorted_replacements <- replacements_cert[order(-nchar(names(replacements_cert)))]
       
+      
       # Loop over each certification column
       for (certification in certif_other_cols) {
         if (certification %in% colnames(combined_data)) {
           for (pattern in names(replacements_cert)) {
-            combined_data[[certification]] <- gsub(pattern, replacements_cert[[pattern]], combined_data[[certification]])
+            # Use word boundaries for precise matching
+            combined_data[[certification]] <- gsub(
+              paste0("\\b", pattern, "\\b"), 
+              replacements_cert[[pattern]], 
+              combined_data[[certification]], 
+              ignore.case = TRUE
+            )
           }
         }
       }
+      
+      
+      
+    #  # Loop over each certification column
+    #  for (certification in certif_other_cols) {
+    #    if (certification %in% colnames(combined_data)) {
+    #      for (pattern in names(replacements_cert)) {
+    #        combined_data[[certification]] <- gsub(pattern, replacements_cert[[pattern]], combined_data[[certification]])
+    #      }
+    #    }
+    #  }
       
       
     # Print another list of all certification names to confirm change
