@@ -704,6 +704,7 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
         "Sopa" = "SOPA",
         "Sri sai proteen Malt" = "delete", # Not a certification
         "SS Natural Health care product" = "delete", # Not a certification
+        "SS delete Health care product" = "delete", # Not a certification
         "Vegan; plant-based plastic free packaging" = "delete", # Not a certification
         "Zero - pesticide free food" = "delete", # Not a certification
         "Zero" = "delete" # Not a certification
@@ -727,7 +728,6 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
           }
         }
       }
-      
       
       
     #  # Loop over each certification column
