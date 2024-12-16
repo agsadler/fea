@@ -8,6 +8,7 @@ output: word_document
 ```{r setup, include=FALSE}
 # Load necessary libraries
 library(dplyr)
+library(ggplot2)
 library(gmodels)
 library(gt)
 library(knitr)
@@ -17,7 +18,7 @@ library(readxl)
 library(readr)
 library(stats)
 library(tidyr)
-library(ggplot2)
+library(tidyverse)
 
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -1730,6 +1731,7 @@ tab5_country <- tab5_country_data %>%
 # Display the table
 tab5_country
 
+
 # Export to table_outputs workbook
 addWorksheet(table_outputs, "Table 5 - country")
 writeData(table_outputs, sheet = "Table 5 - country", x = tab5_country)
@@ -3194,4 +3196,235 @@ addWorksheet(table_outputs, "Table 8 - sentinelfood")
 writeData(table_outputs, sheet = "Table 8 - sentinelfood", x = sentinelfood)
 
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+```
+
+
+
+### Table SX - Certification frequency by terminology
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# values per country
+country <- data_clean %>%
+  group_by(country) %>%
+  summarise(Certified = sum(cert_count, na.rm = TRUE),
+            Total = sum(org_products_count, na.rm = TRUE)) %>%
+  mutate(Proportion = round(Certified/Total*100, 2)) %>%
+  bind_rows(
+    summarise(., 
+              country = "Total", 
+              Certified = sum(Certified), 
+              Total = sum(Total), 
+              Proportion = round(sum(Certified) / sum(Total) * 100, 2))
+    )
+
+# values per store type
+vendortype <- data_clean %>%
+  group_by(vendor_type)%>%
+  summarise(Certified = sum(cert_count, na.rm = TRUE),
+            Total = sum(org_products_count, na.rm = TRUE)) %>%
+  mutate(Proportion = round(Certified/Total*100, 2))
+
+
+# values per food
+products <- c("tom", "leaf", "ban", "man", "fj", "milk", "cof", "tea", "mill", "chic", "daal", "wht", "rice", "nut")
+vector_organics <- paste0(products, "_org")
+vector_cert <- paste0(products, "_cert")
+
+
+sentinelfood <- cbind(
+  # count certifications
+  data_clean %>%
+    select(id, country, all_of(vector_cert)) %>%
+    pivot_longer(cols = c(vector_cert), 
+                 names_to = "food", 
+                 values_to = c("certified")) %>%
+    group_by(food) %>%
+    summarise(Certified = sum(certified >= 1, na.rm=T)),
+  
+  # count all organics
+  data_clean %>%
+    select(id, country, all_of(vector_organics)) %>%
+    pivot_longer(cols = c(vector_organics), 
+                 names_to = "food", 
+                 values_to = c("total")) %>%
+    group_by(food) %>%
+    summarise(Total = sum(total == "Yes", na.rm=T)) %>%
+    select(-food)
+) %>%
+  mutate(Proportion = round(Certified/Total*100, 2))
+
+kable(country)
+kable(vendortype)
+kable(sentinelfood)
+
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 8 - country")
+writeData(table_outputs, sheet = "Table 8 - country", x = country)
+
+addWorksheet(table_outputs, "Table 8 - vendortype")
+writeData(table_outputs, sheet = "Table 8 - vendortype", x = vendortype)
+
+addWorksheet(table_outputs, "Table 8 - sentinelfood")
+writeData(table_outputs, sheet = "Table 8 - sentinelfood", x = sentinelfood)
+
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+```
+
+
+
+
+### Figure SX - country-level price boxplot
+
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create new dataset in longer format
+tab5_long <- rice_prices_data %>%
+  select(id, country, rice_price_both, rice_price_conv_kg_usd, rice_price_org_kg_usd) %>%
+  pivot_longer(
+    cols = c(rice_price_conv_kg_usd, rice_price_org_kg_usd), # Select columns for conventional and organic prices
+    names_to = "Type",
+    values_to = "Price"
+  ) %>%
+  drop_na(Price) %>% # Remove rows where Price is NA
+  mutate(Type = case_when(
+    Type == "rice_price_conv_kg_usd" ~ "Conventional",
+    Type == "rice_price_org_kg_usd" ~ "Organic"
+  ))
+
+
+
+# Create boxplot with points
+ggplot(tab5_long, aes(x = country, y = Price, fill = Type)) +
+  # Boxplot layer
+  geom_boxplot(position = position_dodge(width = 0.8), outlier.shape = NA) +
+  # Jittered points layer
+  geom_jitter(
+    position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.8),
+    size = 0.5,
+    color = "black"
+  ) +
+  # Customizations
+  labs(
+    x = "Country",
+    y = "Price (per kg, USD)"
+  ) +
+  scale_fill_manual(
+    values = c("Organic" = "skyblue", "Conventional" = "lightgreen") # Set custom colors
+  )
+
+# Save the plot
+ggsave(
+  filename = "boxplot_with_points.png", 
+  path = "C:/Users/s1985751/Documents/GitHub/fea/Outputs",
+  width = 8,
+  height = 6,
+  dpi = 300
+)
+
+
+# Create boxplot with medians labelled
+ggplot(tab5_long, aes(x = country, y = Price, fill = Type)) +
+  # Boxplot layer
+  geom_boxplot(position = position_dodge(width = 0.8), outlier.shape = NA) +
+#  # Jittered points layer
+#  geom_jitter(
+#    position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.8),
+#    size = 1.5,
+#    alpha = 0.6,
+#    color = "black"
+#  ) +
+    # Add median labels
+  stat_summary(
+    fun = median,                                       # Function to calculate median
+    geom = "text",                                      # Add as text labels
+    aes(label = sprintf("%.2f", ..y..)),                # Format median to 2 decimal places
+    position = position_dodge(width = 0.8),             # Ensure alignment with boxes
+    vjust = -0.5,                                       # Adjust vertical position
+    color = "black",                                    # Text color
+    size = 3                                            # Text size
+  ) +
+  # Customizations
+  labs(
+    x = "Country",
+    y = "Price (per kg, USD)"
+  ) 
+
+# Save the plot
+ggsave(
+  filename = "boxplot_medians.png", 
+  path = "C:/Users/s1985751/Documents/GitHub/fea/Outputs",
+  width = 8,
+  height = 6,
+  dpi = 300
+)
+
+# Create violin plot
+ggplot(tab5_long, aes(x = country, y = Price, fill = Type)) +
+  # Violin plot layer
+  geom_violin(position = position_dodge(width = 0.8), outlier.shape = NA)
+
+
+# Save the plot
+ggsave(
+  filename = "violinplot.png", 
+  path = "C:/Users/s1985751/Documents/GitHub/fea/Outputs",
+  width = 8,
+  height = 6,
+  dpi = 300
+)  
+  
+# Export to table_outputs workbook
+#addWorksheet(table_outputs, "Table 5 - country")
+#writeData(table_outputs, sheet = "Table 5 - country", x = tab5_country)
+#saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+
+### Figure SX - Availability income-level
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Define order of neighbourhood variable
+circle_order <- c("Higher","Middle","Lower")
+  
+# Convert the circle column to a factor with the specified levels
+tab2_fig_data <- data_clean %>%
+  mutate(circle = factor(circle, levels = circle_order)) %>%
+  select(id, country, city, circle, org_vendor)
+
+# Create table of neighbourhood data
+tab2_fig_neighbourhood <- tab2_fig_data %>%
+  group_by(country, city, circle) %>%
+  summarise(
+    vendors = n(),
+    count_org_vendors = sum(org_vendor == 1, na.rm = TRUE),
+    org_vendor_perc = count_org_vendors / vendors
+  ) %>%
+  ungroup()
+
+# Create scatterplot stacked by country
+ggplot(tab2_fig_neighbourhood, aes(x = circle, y = org_vendor_perc, color = circle)) +
+  geom_point(size = 3, alpha = 0.8) +         # Scatter points
+  facet_wrap(~ country, ncol = 1, scales = "free_y") +  # Facet countries in separate rows
+  labs(
+    x = "Neighbourhood",
+    y = "Organic Vendor Percentage"
+  ) +
+  theme_light() +
+  theme(
+    strip.text = element_text(size = 12, face = "bold"),  # Country panel titles
+    axis.text.x = element_text(angle = 45, hjust = 1),   # Rotated x-axis labels
+    legend.position = "none"                             # Remove legend for 'Circle'
+  )
+
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 2 - Figure")
+writeData(table_outputs, sheet = "Table 2 - Figure", x = tab2_fig_neighbourhood)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
 ```
