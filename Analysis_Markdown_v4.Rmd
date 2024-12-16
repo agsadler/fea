@@ -1017,90 +1017,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 
 
 
-#### Table 2S - Availability without beverages
 
-```{r echo = FALSE, message = FALSE, warning = FALSE}
-
-# Define order of neighbourhood variable
-circle_order <- c("Higher","Middle","Lower")
-  
-# Convert the circle column to a factor with the specified levels
-tab2s_data <- data_clean %>%
-  mutate(circle = factor(circle, levels = circle_order))
-
-# Filter to only foods, not beverages
-
-# Create table of neighbourhood data
-tab2s_neighbourhood <- tab2s_data %>%
-  group_by(country, city, circle) %>%
-  summarise(
-    vendors = n(),
-    count_org_vendors_foodonly = sum(org_vendor_foodonly == 1, na.rm = TRUE),
-    org_vendor_perc_foodonly = count_org_vendors_foodonly / vendors,
-    median_org_products_count_foodonly = median(org_foodonly_count, na.rm = TRUE),
-    iqr_org_products_count_foodonly = IQR(org_foodonly_count, na.rm = TRUE)
-  ) %>%
-  ungroup()
-
-# Create city rows
-tab2s_city <- tab2s_data %>%
-  group_by(country, city) %>%
-  summarise(
-    vendors = n(),
-    count_org_vendors_foodonly = sum(org_vendor_foodonly == 1, na.rm = TRUE),
-    org_vendor_perc_foodonly = count_org_vendors_foodonly / vendors,
-    median_org_products_count_foodonly = median(org_foodonly_count, na.rm = TRUE),
-    iqr_org_products_count_foodonly = IQR(org_foodonly_count, na.rm = TRUE)
-  ) %>%
-  ungroup()
-
-# Create country rows
-tab2s_country <- tab2s_data %>%
-  group_by(country) %>%
-  summarise(
-    vendors = n(),
-    count_org_vendors_foodonly = sum(org_vendor_foodonly == 1, na.rm = TRUE),
-    org_vendor_perc_foodonly = count_org_vendors_foodonly / vendors,
-    median_org_products_count_foodonly = median(org_foodonly_count, na.rm = TRUE),
-    iqr_org_products_count_foodonly = IQR(org_foodonly_count, na.rm = TRUE)
-  ) %>%
-  ungroup()
-
-# Combine all three tables (neighbourhood, city, and country) into one
-combined_tab2s <- bind_rows(
-  tab2s_neighbourhood %>%
-    mutate(level = "Neighbourhood"),
-  tab2s_city %>%
-    mutate(level = "City"),
-  tab2s_country %>%
-    mutate(level = "Country")
-)
-
-# Create a custom order for the 'level' column to ensure Neighbourhood rows come first, then City, and then Country
-combined_tab2s$level <- factor(combined_tab2s$level, levels = c("Neighbourhood", "City", "Country"))
-
-# Sort the combined data by country, city, and the custom level order
-tab2s_final <- combined_tab2s %>%
-  arrange(country, city, level)
-
-# Merge columns
-tab2s_final <- tab2s_final %>%
-  mutate(
-    org_foodonly = paste0(count_org_vendors_foodonly, " (", round(org_vendor_perc_foodonly * 100, 2), "%)"),
-    sentinels_foodonly = paste0(median_org_products_count_foodonly, " (", iqr_org_products_count_foodonly, ")")
-  ) %>%
-  select(country, city, circle, vendors, org_foodonly, sentinels_foodonly)
-
-# Print table
-print(tab2s_final)
-
-
-# Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 2s")
-writeData(table_outputs, sheet = "Table 2s", x = tab2s_final)
-saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
-
-```
 
 
 
@@ -3425,6 +3342,95 @@ ggplot(tab2_fig_neighbourhood, aes(x = circle, y = org_vendor_perc, color = circ
 # Export to table_outputs workbook
 addWorksheet(table_outputs, "Table 2 - Figure")
 writeData(table_outputs, sheet = "Table 2 - Figure", x = tab2_fig_neighbourhood)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+```
+
+
+
+## Supplementary Information
+
+### Table S1 - Availability without beverages
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Define order of neighbourhood variable
+circle_order <- c("Higher","Middle","Lower")
+  
+# Convert the circle column to a factor with the specified levels
+tab2s_data <- data_clean %>%
+  mutate(circle = factor(circle, levels = circle_order))
+
+# Filter to only foods, not beverages
+
+# Create table of neighbourhood data
+tab2s_neighbourhood <- tab2s_data %>%
+  group_by(country, city, circle) %>%
+  summarise(
+    vendors = n(),
+    count_org_vendors_foodonly = sum(org_vendor_foodonly == 1, na.rm = TRUE),
+    org_vendor_perc_foodonly = count_org_vendors_foodonly / vendors,
+    median_org_products_count_foodonly = median(org_foodonly_count, na.rm = TRUE),
+    iqr_org_products_count_foodonly = IQR(org_foodonly_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Create city rows
+tab2s_city <- tab2s_data %>%
+  group_by(country, city) %>%
+  summarise(
+    vendors = n(),
+    count_org_vendors_foodonly = sum(org_vendor_foodonly == 1, na.rm = TRUE),
+    org_vendor_perc_foodonly = count_org_vendors_foodonly / vendors,
+    median_org_products_count_foodonly = median(org_foodonly_count, na.rm = TRUE),
+    iqr_org_products_count_foodonly = IQR(org_foodonly_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Create country rows
+tab2s_country <- tab2s_data %>%
+  group_by(country) %>%
+  summarise(
+    vendors = n(),
+    count_org_vendors_foodonly = sum(org_vendor_foodonly == 1, na.rm = TRUE),
+    org_vendor_perc_foodonly = count_org_vendors_foodonly / vendors,
+    median_org_products_count_foodonly = median(org_foodonly_count, na.rm = TRUE),
+    iqr_org_products_count_foodonly = IQR(org_foodonly_count, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Combine all three tables (neighbourhood, city, and country) into one
+combined_tab2s <- bind_rows(
+  tab2s_neighbourhood %>%
+    mutate(level = "Neighbourhood"),
+  tab2s_city %>%
+    mutate(level = "City"),
+  tab2s_country %>%
+    mutate(level = "Country")
+)
+
+# Create a custom order for the 'level' column to ensure Neighbourhood rows come first, then City, and then Country
+combined_tab2s$level <- factor(combined_tab2s$level, levels = c("Neighbourhood", "City", "Country"))
+
+# Sort the combined data by country, city, and the custom level order
+tab2s_final <- combined_tab2s %>%
+  arrange(country, city, level)
+
+# Merge columns
+tab2s_final <- tab2s_final %>%
+  mutate(
+    org_foodonly = paste0(count_org_vendors_foodonly, " (", round(org_vendor_perc_foodonly * 100, 2), "%)"),
+    sentinels_foodonly = paste0(median_org_products_count_foodonly, " (", iqr_org_products_count_foodonly, ")")
+  ) %>%
+  select(country, city, circle, vendors, org_foodonly, sentinels_foodonly)
+
+# Print table
+print(tab2s_final)
+
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table 2s")
+writeData(table_outputs, sheet = "Table 2s", x = tab2s_final)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
