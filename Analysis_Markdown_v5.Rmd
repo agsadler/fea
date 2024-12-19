@@ -3382,76 +3382,263 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```
 
 
-### Table SX - Certification frequency by terminology - WORK IN PROGRESS!
+### Table S5 - Certification frequency by terminology - WORK IN PROGRESS!
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
-# values per country
-country <- data_clean %>%
-  group_by(country) %>%
-  summarise(Certified = sum(cert_count, na.rm = TRUE),
-            Total = sum(org_products_count, na.rm = TRUE)) %>%
-  mutate(Proportion = round(Certified/Total*100, 2)) %>%
-  bind_rows(
-    summarise(., 
-              country = "Total", 
-              Certified = sum(Certified), 
-              Total = sum(Total), 
-              Proportion = round(sum(Certified) / sum(Total) * 100, 2))
+# Create new instance of dataset for Table S5
+tabS5_data <- data_clean
+
+# Vector of product abbreviations
+products <- c("tom", "leaf", "ban", "man", "fj", "milk", "cof", "tea", "mill", "chic", "daal", "wht", "rice", "nut")
+
+# Vector of countries
+countries <- c("Brazil", "India", "UK", "Overall")
+
+# Define a function to create the category summary for a given dataset
+create_category_summary <- function(data) {
+  
+  # PRODUCT-LEVEL SUMMARY
+  tabS5_product_summary_list <- lapply(products, function(product) {
+    data %>%
+      summarise(
+        org_count = sum(get(paste0(product, "_org")) == "Yes", na.rm = TRUE),
+        cert_count = sum(get(paste0(product, "_cert")) >= 1, na.rm = TRUE), # Certified organic products
+        
+        # Organic term and certification
+        term_organic_count = sum(get(paste0(product, "_org_terms_Organic")) == 1, na.rm = TRUE),
+        term_organic_certified = sum(get(paste0(product, "_org_terms_Organic")) == 1 & 
+                                     get(paste0(product, "_cert")) >= 1, na.rm = TRUE),
+        term_organic_certified_perc = term_organic_certified / term_organic_count,
+        
+        # Natural term and certification
+        term_natural_count = sum(get(paste0(product, "_org_terms_Natural")) == 1, na.rm = TRUE),
+        term_natural_certified = sum(get(paste0(product, "_org_terms_Natural")) == 1 & 
+                                     get(paste0(product, "_cert")) >= 1, na.rm = TRUE),
+        term_natural_certified_perc = term_natural_certified / term_natural_count,
+
+        # Chemical-free term and certification
+        term_chemfree_count = sum(get(paste0(product, "_org_terms_Chemical-free")) == 1, na.rm = TRUE),
+        term_chemfree_certified = sum(get(paste0(product, "_org_terms_Chemical-free")) == 1 & 
+                                       get(paste0(product, "_cert")) >= 1, na.rm = TRUE),
+        term_chemfree_certified_perc = term_chemfree_certified / term_chemfree_count,
+
+        # Pesticide-free term and certification
+        term_pestfree_count = sum(get(paste0(product, "_org_terms_Pesticide-free")) == 1, na.rm = TRUE),
+        term_pestfree_certified = sum(get(paste0(product, "_org_terms_Pesticide-free")) == 1 & 
+                                       get(paste0(product, "_cert")) >= 1, na.rm = TRUE),
+        term_pestfree_certified_perc = term_pestfree_certified / term_pestfree_count,
+
+        # Bioproducts term and certification
+        term_bioprod_count = sum(get(paste0(product, "_org_terms_Bioproducts")) == 1, na.rm = TRUE),
+        term_bioprod_certified = sum(get(paste0(product, "_org_terms_Bioproducts")) == 1 & 
+                                      get(paste0(product, "_cert")) >= 1, na.rm = TRUE),
+        term_bioprod_certified_perc = term_bioprod_certified / term_bioprod_count,
+
+        # Bio term and certification
+        term_bio_count = sum(get(paste0(product, "_org_terms_Bio")) == 1, na.rm = TRUE),
+        term_bio_certified = sum(get(paste0(product, "_org_terms_Bio")) == 1 & 
+                                  get(paste0(product, "_cert")) >= 1, na.rm = TRUE),
+        term_bio_certified_perc = term_bio_certified / term_bio_count,
+
+        # Eco term and certification
+        term_eco_count = sum(get(paste0(product, "_org_terms_Eco")) == 1, na.rm = TRUE),
+        term_eco_certified = sum(get(paste0(product, "_org_terms_Eco")) == 1 & 
+                                  get(paste0(product, "_cert")) >= 1, na.rm = TRUE),
+        term_eco_certified_perc = term_eco_certified / term_eco_count,
+
+        # GMO-free term and certification
+        term_gmo_count = sum(get(paste0(product, "_org_terms_GMO-free")) == 1, na.rm = TRUE),
+        term_gmo_certified = sum(get(paste0(product, "_org_terms_GMO-free")) == 1 & 
+                                  get(paste0(product, "_cert")) >= 1, na.rm = TRUE),
+        term_gmo_certified_perc = term_gmo_certified / term_gmo_count
+
+      ) %>%
+      mutate(
+        product = product,
+        category = case_when(product %in% c("fj", "milk", "cof", "tea") ~ "beverages",
+                             product %in% c("tom", "leaf", "ban", "man") ~ "fresh produce",
+                             TRUE ~ "other")
+      ) %>%
+      select(category, product, everything())
+  })
+  
+  tabS5_product_summary <- bind_rows(tabS5_product_summary_list)
+  
+  # CATEGORY-LEVEL SUMMARY
+  tabS5_category_summary <- tabS5_product_summary %>%
+    group_by(category) %>%
+    summarise(
+      cat_org_count = sum(org_count, na.rm = TRUE),
+      cat_cert_count = sum(cert_count, na.rm = TRUE),
+
+      cat_term_organic_count = sum(term_organic_count, na.rm = TRUE),
+      cat_term_organic_certified = sum(term_organic_certified, na.rm = TRUE),
+      cat_term_organic_certified_perc = cat_term_organic_certified / cat_term_organic_count,
+
+      cat_term_natural_count = sum(term_natural_count, na.rm = TRUE),
+      cat_term_natural_certified = sum(term_natural_certified, na.rm = TRUE),
+      cat_term_natural_certified_perc = cat_term_natural_certified / cat_term_natural_count,
+
+      cat_term_chemfree_count = sum(term_chemfree_count, na.rm = TRUE),
+      cat_term_chemfree_certified = sum(term_chemfree_certified, na.rm = TRUE),
+      cat_term_chemfree_certified_perc = cat_term_chemfree_certified / cat_term_chemfree_count,
+
+      cat_term_pestfree_count = sum(term_pestfree_count, na.rm = TRUE),
+      cat_term_pestfree_certified = sum(term_pestfree_certified, na.rm = TRUE),
+      cat_term_pestfree_certified_perc = cat_term_pestfree_certified / cat_term_pestfree_count,
+
+      cat_term_bioprod_count = sum(term_bioprod_count, na.rm = TRUE),
+      cat_term_bioprod_certified = sum(term_bioprod_certified, na.rm = TRUE),
+      cat_term_bioprod_certified_perc = cat_term_bioprod_certified / cat_term_bioprod_count,
+
+      cat_term_bio_count = sum(term_bio_count, na.rm = TRUE),
+      cat_term_bio_certified = sum(term_bio_certified, na.rm = TRUE),
+      cat_term_bio_certified_perc = cat_term_bio_certified / cat_term_bio_count,
+
+      cat_term_eco_count = sum(term_eco_count, na.rm = TRUE),
+      cat_term_eco_certified = sum(term_eco_certified, na.rm = TRUE),
+      cat_term_eco_certified_perc = cat_term_eco_certified / cat_term_eco_count,
+
+      cat_term_gmo_count = sum(term_gmo_count, na.rm = TRUE),
+      cat_term_gmo_certified = sum(term_gmo_certified, na.rm = TRUE),
+      cat_term_gmo_certified_perc = cat_term_gmo_certified / cat_term_gmo_count
     )
 
-# values per store type
-vendortype <- data_clean %>%
-  group_by(vendor_type)%>%
-  summarise(Certified = sum(cert_count, na.rm = TRUE),
-            Total = sum(org_products_count, na.rm = TRUE)) %>%
-  mutate(Proportion = round(Certified/Total*100, 2))
+  # Calculate the totals across all categories
+  totals_row <- tabS5_category_summary %>%
+    summarise(
+      category = "Total",
+      cat_org_count = sum(cat_org_count, na.rm = TRUE),
+      cat_cert_count = sum(cat_cert_count, na.rm = TRUE),
+
+      cat_term_organic_count = sum(cat_term_organic_count, na.rm = TRUE),
+      cat_term_organic_certified = sum(cat_term_organic_certified, na.rm = TRUE),
+      cat_term_organic_certified_perc = cat_term_organic_certified / cat_term_organic_count,
+
+      cat_term_natural_count = sum(cat_term_natural_count, na.rm = TRUE),
+      cat_term_natural_certified = sum(cat_term_natural_certified, na.rm = TRUE),
+      cat_term_natural_certified_perc = cat_term_natural_certified / cat_term_natural_count,
+
+      cat_term_chemfree_count = sum(cat_term_chemfree_count, na.rm = TRUE),
+      cat_term_chemfree_certified = sum(cat_term_chemfree_certified, na.rm = TRUE),
+      cat_term_chemfree_certified_perc = cat_term_chemfree_certified / cat_term_chemfree_count,
+
+      cat_term_pestfree_count = sum(cat_term_pestfree_count, na.rm = TRUE),
+      cat_term_pestfree_certified = sum(cat_term_pestfree_certified, na.rm = TRUE),
+      cat_term_pestfree_certified_perc = cat_term_pestfree_certified / cat_term_pestfree_count,
+
+      cat_term_bioprod_count = sum(cat_term_bioprod_count, na.rm = TRUE),
+      cat_term_bioprod_certified = sum(cat_term_bioprod_certified, na.rm = TRUE),
+      cat_term_bioprod_certified_perc = cat_term_bioprod_certified / cat_term_bioprod_count,
+
+      cat_term_bio_count = sum(cat_term_bio_count, na.rm = TRUE),
+      cat_term_bio_certified = sum(cat_term_bio_certified, na.rm = TRUE),
+      cat_term_bio_certified_perc = cat_term_bio_certified / cat_term_bio_count,
+
+      cat_term_eco_count = sum(cat_term_eco_count, na.rm = TRUE),
+      cat_term_eco_certified = sum(cat_term_eco_certified, na.rm = TRUE),
+      cat_term_eco_certified_perc = cat_term_eco_certified / cat_term_eco_count,
+
+      cat_term_gmo_count = sum(cat_term_gmo_count, na.rm = TRUE),
+      cat_term_gmo_certified = sum(cat_term_gmo_certified, na.rm = TRUE),
+      cat_term_gmo_certified_perc = cat_term_gmo_certified / cat_term_gmo_count
+    )
+
+  # Append the totals row to the category summary table
+  tabS5_category_summary <- bind_rows(tabS5_category_summary, totals_row)
+
+  return(tabS5_category_summary)
+}
+
+# Run the function for each country and combine results into one table
+results_list <- lapply(countries, function(country) {
+  if (country == "Overall") {
+    data <- tabS5_data
+  } else {
+    # Ensure filtering by country works
+    data <- tabS5_data %>% filter(country == !!country)
+  }
+  summary_table <- create_category_summary(data)
+  summary_table %>%
+    mutate(country = country) %>%
+    select(country, everything())
+})
+
+# Combine all results
+tabS5_combined_summary <- bind_rows(results_list)
+
+# Mutate to combine and clean up columns
+tabS5_combined_summary <- tabS5_combined_summary %>%
+    mutate(
+      term_organic = paste0(cat_term_organic_certified, " (", round(cat_term_organic_certified_perc * 100), "%)"),
+      term_natural = paste0(cat_term_natural_certified, " (", round(cat_term_natural_certified_perc * 100), "%)"),
+      term_chemfree = paste0(cat_term_chemfree_certified, " (", round(cat_term_chemfree_certified_perc * 100), "%)"),
+      term_pestfree = paste0(cat_term_pestfree_certified, " (", round(cat_term_pestfree_certified_perc * 100), "%)"),
+      term_bioprod = paste0(cat_term_bioprod_certified, " (", round(cat_term_bioprod_certified_perc * 100), "%)"),
+      term_bio = paste0(cat_term_bio_certified, " (", round(cat_term_bio_certified_perc * 100), "%)"),
+      term_eco = paste0(cat_term_eco_certified, " (", round(cat_term_eco_certified_perc * 100), "%)"),
+      term_gmo = paste0(cat_term_gmo_certified, " (", round(cat_term_gmo_certified_perc * 100), "%)")
+    ) %>%
+  select(country, category, cat_org_count, term_organic, term_natural,
+         term_chemfree, term_pestfree, term_bioprod, term_bio, term_eco, term_gmo)
+
+# View the final combined summary table
+tabS5_combined_summary
 
 
-# values per food
-products <- c("tom", "leaf", "ban", "man", "fj", "milk", "cof", "tea", "mill", "chic", "daal", "wht", "rice", "nut")
-vector_organics <- paste0(products, "_org")
-vector_cert <- paste0(products, "_cert")
 
+# Calculate table showing certifications per term
 
-sentinelfood <- cbind(
-  # count certifications
-  data_clean %>%
-    select(id, country, all_of(vector_cert)) %>%
-    pivot_longer(cols = c(vector_cert), 
-                 names_to = "food", 
-                 values_to = c("certified")) %>%
-    group_by(food) %>%
-    summarise(Certified = sum(certified >= 1, na.rm=T)),
+create_term_summary <- function(data) {
+  terms <- c("Organic", "Natural", "Chemical-free", "Pesticide-free", "Bioproducts", "Bio", "Eco", "GMO-free")
   
-  # count all organics
-  data_clean %>%
-    select(id, country, all_of(vector_organics)) %>%
-    pivot_longer(cols = c(vector_organics), 
-                 names_to = "food", 
-                 values_to = c("total")) %>%
-    group_by(food) %>%
-    summarise(Total = sum(total == "Yes", na.rm=T)) %>%
-    select(-food)
-) %>%
-  mutate(Proportion = round(Certified/Total*100, 2))
+  term_summary <- lapply(terms, function(term) {
+    certified_with_term <- 0
+    total_with_term <- 0
+    
+    # Loop through all products to calculate totals
+    for (product in products) {
+      term_col <- paste0(product, "_org_terms_", term)
+      certified_col <- paste0(product, "_cert")
+      
+      # Check if the columns exist
+      if (term_col %in% colnames(data) && certified_col %in% colnames(data)) {
+        certified_with_term <- certified_with_term + 
+          sum(data[[term_col]] == 1 & data[[certified_col]] >= 1, na.rm = TRUE)
+        total_with_term <- total_with_term + 
+          sum(data[[term_col]] == 1, na.rm = TRUE)
+      }
+    }
+    
+    # Proportion of certified products
+    proportion_certified <- ifelse(total_with_term > 0, certified_with_term / total_with_term, 0)
+    
+    # Return summary for the term
+    data.frame(
+      Term = term,
+      Certified = certified_with_term,
+      Total = total_with_term,
+      Proportion = round(proportion_certified * 100, 2)
+    )
+  })
+  
+  term_summary_df <- bind_rows(term_summary)
+  return(term_summary_df)
+}
 
-kable(country)
-kable(vendortype)
-kable(sentinelfood)
+# Apply the function to generate term-level summary for the entire dataset
+term_summary_table <- create_term_summary(tabS5_data)
+
+# View the final term summary table
+term_summary_table
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 8 - country")
-writeData(table_outputs, sheet = "Table 8 - country", x = country)
-
-addWorksheet(table_outputs, "Table 8 - vendortype")
-writeData(table_outputs, sheet = "Table 8 - vendortype", x = vendortype)
-
-addWorksheet(table_outputs, "Table 8 - sentinelfood")
-writeData(table_outputs, sheet = "Table 8 - sentinelfood", x = sentinelfood)
-
+addWorksheet(table_outputs, "Table S5")
+writeData(table_outputs, sheet = "Table S5", x = term_summary_table)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
 ```
 
 
