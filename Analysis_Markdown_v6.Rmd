@@ -997,7 +997,7 @@ tab2_final <- combined_tab2 %>%
 # Merge columns
 tab2_final <- tab2_final %>%
   mutate(
-    org = paste0(count_org_vendors, " (", round(org_vendor_perc * 100, 2), "%)"),
+    org = paste0(count_org_vendors, " (", round(org_vendor_perc * 100, 1), "%)"),
     sentinels = paste0(median_org_products_count, " (", iqr_org_products_count, ")")
   ) %>%
   select(country, city, circle, vendors, org, sentinels)
@@ -1237,93 +1237,6 @@ cat("Overall Mann-Whitney U test p-value (one-tailed):", uk_p_value_one_tailed, 
 
 
 
-### Hypothesis 2b. The price of organic rice will be significantly higher than the price of non-organic rice when sold at the same vendor location.
-
-#### Wilcoxon Signed Rank Test
-
-##### Overall results
-```{r echo = FALSE, message = FALSE, warning = FALSE}
-
-# Create data frame of rice prices for vendors selling both organic and conventional
-wsr_rice_prices_data_overall <- rice_prices_data %>%
-  select(rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
-  filter(rice_price_both == 1)
-
-# Overall Wilcoxon Signed Rank test
-wsr_overall_test <- wilcox.test(wsr_rice_prices_data_overall$rice_price_org_kg_usd,
-                            wsr_rice_prices_data_overall$rice_price_conv_kg_usd,
-                            alternative = "greater", paired = TRUE)
-
-wsr_overall_p_value_one_tailed <- wsr_overall_test$p.value / 2
-
-print(wsr_overall_test)
-cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_overall_p_value_one_tailed, "\n")
-
-```
-
-##### Country-level results: Brazil
-```{r echo = FALSE, message = FALSE, warning = FALSE}
-
-# Create data frame of rice prices for vendors selling both organic and conventional
-wsr_rice_prices_data_brazil <- rice_prices_data %>%
-  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
-  filter(rice_price_both == 1) %>%
-  filter(country == "Brazil")
-
-# Overall Wilcoxon Signed Rank test
-wsr_brazil_test <- wilcox.test(wsr_rice_prices_data_brazil$rice_price_org_kg_usd,
-                            wsr_rice_prices_data_brazil$rice_price_conv_kg_usd,
-                            alternative = "greater", paired = TRUE)
-
-wsr_brazil_p_value_one_tailed <- wsr_brazil_test$p.value / 2
-
-print(wsr_brazil_test)
-cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_brazil_p_value_one_tailed, "\n")
-
-```
-
-
-##### Country-level results: India
-```{r echo = FALSE, message = FALSE, warning = FALSE}
-
-# Create data frame of rice prices for vendors selling both organic and conventional
-wsr_rice_prices_data_india <- rice_prices_data %>%
-  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
-  filter(rice_price_both == 1) %>%
-  filter(country == "India")
-
-# Overall Wilcoxon Signed Rank test
-wsr_india_test <- wilcox.test(wsr_rice_prices_data_india$rice_price_org_kg_usd,
-                            wsr_rice_prices_data_india$rice_price_conv_kg_usd,
-                            alternative = "greater", paired = TRUE)
-
-wsr_india_p_value_one_tailed <- wsr_india_test$p.value / 2
-
-print(wsr_india_test)
-cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_india_p_value_one_tailed, "\n")
-```
-
-##### Country-level results: UK
-```{r echo = FALSE, message = FALSE, warning = FALSE}
-
-# Create data frame of rice prices for vendors selling both organic and conventional
-wsr_rice_prices_data_uk <- rice_prices_data %>%
-  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
-  filter(rice_price_both == 1) %>%
-  filter(country == "UK")
-
-# Overall Wilcoxon Signed Rank test
-wsr_uk_test <- wilcox.test(wsr_rice_prices_data_uk$rice_price_org_kg_usd,
-                            wsr_rice_prices_data_uk$rice_price_conv_kg_usd,
-                            alternative = "greater", paired = TRUE)
-
-wsr_uk_p_value_one_tailed <- wsr_uk_test$p.value / 2
-
-print(wsr_uk_test)
-cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_uk_p_value_one_tailed, "\n")
-```
-
-
 
 ### Figure 2 - country-level price boxplot
 
@@ -1444,7 +1357,7 @@ ggsave(
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Create new instance of dataset for Table 6
-tab6_data <- data_clean
+tab3_data <- data_clean
 
 
 # Vector of product abbreviations
@@ -1460,7 +1373,7 @@ create_category_summary <- function(data) {
   
   # PRODUCT-LEVEL SUMMARY
   # Define a function to summarize data for a given product and dataset
-  tab6_product_summary_list <- lapply(products, function(product) {
+  tab3_product_summary_list <- lapply(products, function(product) {
     data %>%
       summarise(
         org_count = sum(get(paste0(product, "_org")) == "Yes", na.rm = TRUE),
@@ -1492,15 +1405,15 @@ create_category_summary <- function(data) {
       select(category, product, everything())
   })
   
-  tab6_product_summary <- bind_rows(tab6_product_summary_list)
+  tab3_product_summary <- bind_rows(tab3_product_summary_list)
 
 # Apply the function to each product and combine the results
-#product_summary_list <- lapply(products, tab6_product_fn)
-#tab6_product_summary <- bind_rows(product_summary_list)
+#product_summary_list <- lapply(products, tab3_product_fn)
+#tab3_product_summary <- bind_rows(product_summary_list)
 
   ## CATEGORY-LEVEL SUMMARY
   
-  tab6_category_summary <- tab6_product_summary %>%
+  tab3_category_summary <- tab3_product_summary %>%
     group_by(category) %>%
     summarise(
       cat_org_count = sum(org_count, na.rm = TRUE),
@@ -1525,7 +1438,7 @@ create_category_summary <- function(data) {
     )
 
   # Calculate the totals across all categories
-  totals_row <- tab6_category_summary %>%
+  totals_row <- tab3_category_summary %>%
     summarise(
       category = "Total",
       cat_org_count = sum(cat_org_count, na.rm = TRUE),
@@ -1550,9 +1463,9 @@ create_category_summary <- function(data) {
     )
 
   # Append the totals row to the category summary table
-  tab6_category_summary <- bind_rows(tab6_category_summary, totals_row)
+  tab3_category_summary <- bind_rows(tab3_category_summary, totals_row)
 
-  return(tab6_category_summary)
+  return(tab3_category_summary)
   
 }
 
@@ -1560,10 +1473,10 @@ create_category_summary <- function(data) {
 # Run the function for each country and combine results into one table
 results_list <- lapply(countries, function(country) {
   if (country == "Overall") {
-    data <- tab6_data
+    data <- tab3_data
   } else {
     # Ensure filtering by country works
-    data <- tab6_data %>% filter(country == !!country)
+    data <- tab3_data %>% filter(country == !!country)
   }
   summary_table <- create_category_summary(data)
   summary_table %>%
@@ -1572,29 +1485,29 @@ results_list <- lapply(countries, function(country) {
 })
 
 # Combine all results
-tab6_combined_summary <- bind_rows(results_list)
+tab3_combined_summary <- bind_rows(results_list)
 
 # Mutate to combine and clean up columns
-tab6_combined_summary <- tab6_combined_summary %>%
+tab3_combined_summary <- tab3_combined_summary %>%
     mutate(
-      term_organic = paste0(cat_term_organic_count, " (", round(cat_term_organic_perc * 100), "%)"),
-      term_natural = paste0(cat_term_natural_count, " (", round(cat_term_natural_perc * 100), "%)"),
-      term_chemfree = paste0(cat_term_chemfree_count, " (", round(cat_term_chemfree_perc * 100), "%)"),
-      term_pestfree = paste0(cat_term_pestfree_count, " (", round(cat_term_pestfree_perc * 100), "%)"),
-      term_bioprod = paste0(cat_term_bioprod_count, " (", round(cat_term_bioprod_perc * 100), "%)"),
-      term_bio = paste0(cat_term_bio_count, " (", round(cat_term_bio_perc * 100), "%)"),
-      term_eco = paste0(cat_term_eco_count, " (", round(cat_term_eco_perc * 100), "%)"),
-      term_gmo = paste0(cat_term_gmo_count, " (", round(cat_term_gmo_perc * 100), "%)")
+      term_organic = paste0(cat_term_organic_count, " (", round(cat_term_organic_perc * 100,1), "%)"),
+      term_natural = paste0(cat_term_natural_count, " (", round(cat_term_natural_perc * 100,1), "%)"),
+      term_chemfree = paste0(cat_term_chemfree_count, " (", round(cat_term_chemfree_perc * 100,1), "%)"),
+      term_pestfree = paste0(cat_term_pestfree_count, " (", round(cat_term_pestfree_perc * 100,1), "%)"),
+      term_bioprod = paste0(cat_term_bioprod_count, " (", round(cat_term_bioprod_perc * 100,1), "%)"),
+      term_bio = paste0(cat_term_bio_count, " (", round(cat_term_bio_perc * 100,1), "%)"),
+      term_eco = paste0(cat_term_eco_count, " (", round(cat_term_eco_perc * 100,1), "%)"),
+      term_gmo = paste0(cat_term_gmo_count, " (", round(cat_term_gmo_perc * 100,1), "%)")
     ) %>%
   select(country, category, cat_org_count, term_organic, term_natural,
          term_chemfree, term_pestfree, term_bioprod, term_bio, term_eco, term_gmo)
 
 # View the final combined summary table
-tab6_combined_summary
+tab3_combined_summary
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 6")
-writeData(table_outputs, sheet = "Table 6", x = tab6_combined_summary)
+addWorksheet(table_outputs, "Table 3")
+writeData(table_outputs, sheet = "Table 3", x = tab3_combined_summary)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -1668,14 +1581,14 @@ kable(sentinelfood)
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 8 - country")
-writeData(table_outputs, sheet = "Table 8 - country", x = country)
+addWorksheet(table_outputs, "Table 4a - country")
+writeData(table_outputs, sheet = "Table 4a - country", x = country)
 
-addWorksheet(table_outputs, "Table 8 - vendortype")
-writeData(table_outputs, sheet = "Table 8 - vendortype", x = vendortype)
+addWorksheet(table_outputs, "Table 4a - vendortype")
+writeData(table_outputs, sheet = "Table 4a - vendortype", x = vendortype)
 
-addWorksheet(table_outputs, "Table 8 - sentinelfood")
-writeData(table_outputs, sheet = "Table 8 - sentinelfood", x = sentinelfood)
+addWorksheet(table_outputs, "Table 4a - sentinelfood")
+writeData(table_outputs, sheet = "Table 4a - sentinelfood", x = sentinelfood)
 
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
@@ -1686,7 +1599,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Create new instance of dataset for Table S5
-tabS5_data <- data_clean
+tab4b_data <- data_clean
 
 # Vector of product abbreviations
 products <- c("tom", "leaf", "ban", "man", "fj", "milk", "cof", "tea", "mill", "chic", "daal", "wht", "rice", "nut")
@@ -1698,7 +1611,7 @@ countries <- c("Brazil", "India", "UK", "Overall")
 create_category_summary <- function(data) {
   
   # PRODUCT-LEVEL SUMMARY
-  tabS5_product_summary_list <- lapply(products, function(product) {
+  tab4b_product_summary_list <- lapply(products, function(product) {
     data %>%
       summarise(
         org_count = sum(get(paste0(product, "_org")) == "Yes", na.rm = TRUE),
@@ -1762,10 +1675,10 @@ create_category_summary <- function(data) {
       select(category, product, everything())
   })
   
-  tabS5_product_summary <- bind_rows(tabS5_product_summary_list)
+  tab4b_product_summary <- bind_rows(tab4b_product_summary_list)
   
   # CATEGORY-LEVEL SUMMARY
-  tabS5_category_summary <- tabS5_product_summary %>%
+  tab4b_category_summary <- tab4b_product_summary %>%
     group_by(category) %>%
     summarise(
       cat_org_count = sum(org_count, na.rm = TRUE),
@@ -1805,7 +1718,7 @@ create_category_summary <- function(data) {
     )
 
   # Calculate the totals across all categories
-  totals_row <- tabS5_category_summary %>%
+  totals_row <- tab4b_category_summary %>%
     summarise(
       category = "Total",
       cat_org_count = sum(cat_org_count, na.rm = TRUE),
@@ -1845,18 +1758,18 @@ create_category_summary <- function(data) {
     )
 
   # Append the totals row to the category summary table
-  tabS5_category_summary <- bind_rows(tabS5_category_summary, totals_row)
+  tab4b_category_summary <- bind_rows(tab4b_category_summary, totals_row)
 
-  return(tabS5_category_summary)
+  return(tab4b_category_summary)
 }
 
 # Run the function for each country and combine results into one table
 results_list <- lapply(countries, function(country) {
   if (country == "Overall") {
-    data <- tabS5_data
+    data <- tab4b_data
   } else {
     # Ensure filtering by country works
-    data <- tabS5_data %>% filter(country == !!country)
+    data <- tab4b_data %>% filter(country == !!country)
   }
   summary_table <- create_category_summary(data)
   summary_table %>%
@@ -1865,10 +1778,10 @@ results_list <- lapply(countries, function(country) {
 })
 
 # Combine all results
-tabS5_combined_summary <- bind_rows(results_list)
+tab4b_combined_summary <- bind_rows(results_list)
 
 # Mutate to combine and clean up columns
-tabS5_combined_summary <- tabS5_combined_summary %>%
+tab4b_combined_summary <- tab4b_combined_summary %>%
     mutate(
       term_organic = paste0(cat_term_organic_certified, " (", round(cat_term_organic_certified_perc * 100), "%)"),
       term_natural = paste0(cat_term_natural_certified, " (", round(cat_term_natural_certified_perc * 100), "%)"),
@@ -1883,7 +1796,7 @@ tabS5_combined_summary <- tabS5_combined_summary %>%
          term_chemfree, term_pestfree, term_bioprod, term_bio, term_eco, term_gmo)
 
 # View the final combined summary table
-tabS5_combined_summary
+tab4b_combined_summary
 
 
 
@@ -1927,15 +1840,15 @@ create_term_summary <- function(data) {
 }
 
 # Apply the function to generate term-level summary for the entire dataset
-term_summary_table <- create_term_summary(tabS5_data)
+term_summary_table <- create_term_summary(tab4b_data)
 
 # View the final term summary table
 term_summary_table
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table S5")
-writeData(table_outputs, sheet = "Table S5", x = term_summary_table)
+addWorksheet(table_outputs, "Table 4b")
+writeData(table_outputs, sheet = "Table 4b", x = term_summary_table)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -1957,7 +1870,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 # Summarize the data grouped by `org_vendor` and `country`
 
-tab4_country_days <- data_clean %>%
+tabE1_country_days <- data_clean %>%
   group_by(country, org_vendor, days_open_category) %>%
   summarise(vendor_count = n(), .groups = "drop") %>%
   pivot_wider(names_from = days_open_category, values_from = vendor_count, 
@@ -1968,7 +1881,7 @@ tab4_country_days <- data_clean %>%
     across(starts_with("open_"), ~ . / total_vendors * 100, .names = "percent_{col}"))
 
 
-tab4_country <- data_clean %>%
+tabE1_country <- data_clean %>%
   group_by(country, org_vendor) %>%
   summarize(
     median_vendor_cashiers = median(vendor_cashiers, na.rm = TRUE),
@@ -1982,20 +1895,20 @@ tab4_country <- data_clean %>%
     max_foods_count = max(foods_count, na.rm = TRUE)
   ) %>%
   ungroup() %>%
-  left_join(tab4_country_days, by = c("country","org_vendor")) %>%
+  left_join(tabE1_country_days, by = c("country","org_vendor")) %>%
   mutate(
     vendor_cashiers_summary = paste0(median_vendor_cashiers, " (", iqr_vendor_cashiers, "), ", 
                                      min_vendor_cashiers, " - ", max_vendor_cashiers),
     foods_count_summary = paste0(median_foods_count, " (", iqr_foods_count, "), ",
                                  min_foods_count, " - ", max_foods_count),
     days_open_1_3_summary = paste0(`open_1-3`, " (", 
-                                   ifelse(`percent_open_1-3` < 1, round(`percent_open_1-3`, 1), round(`percent_open_1-3`)), 
+                                   ifelse(`percent_open_1-3` < 1, round(`percent_open_1-3`, 1), round(`percent_open_1-3`,1)), 
                                    "%)"),
     days_open_4_5_summary = paste0(`open_4-5`, " (", 
-                                   ifelse(`percent_open_4-5` < 1, round(`percent_open_4-5`, 1), round(`percent_open_4-5`)), 
+                                   ifelse(`percent_open_4-5` < 1, round(`percent_open_4-5`, 1), round(`percent_open_4-5`,1)), 
                                    "%)"),
     days_open_6_7_summary = paste0(`open_6-7`, " (", 
-                                   ifelse(`percent_open_6-7` < 1, round(`percent_open_6-7`, 1), round(`percent_open_6-7`)), 
+                                   ifelse(`percent_open_6-7` < 1, round(`percent_open_6-7`, 1), round(`percent_open_6-7`,1)), 
                                    "%)"),
   ) %>%
   select(country, org_vendor, vendor_cashiers_summary, days_open_1_3_summary, 
@@ -2003,13 +1916,13 @@ tab4_country <- data_clean %>%
   mutate(org_vendor = recode(org_vendor, '1' = 'Organic','0' = 'Non-organic'))
 
 # Display the overall results
-print(tab4_country)
+print(tabE1_country)
 
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 4 - country")
-writeData(table_outputs, sheet = "Table 4 - country", x = tab4_country)
+addWorksheet(table_outputs, "Table E1 - country")
+writeData(table_outputs, sheet = "Table E1 - country", x = tabE1_country)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -2019,7 +1932,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 # Summarize the data for overall statistics grouped by `org_vendor`
 
-tab4_overall_days <- data_clean %>%
+tabE1_overall_days <- data_clean %>%
   group_by(org_vendor, days_open_category) %>%
   summarise(vendor_count = n(), .groups = "drop") %>%
   pivot_wider(names_from = days_open_category, values_from = vendor_count, 
@@ -2030,7 +1943,7 @@ tab4_overall_days <- data_clean %>%
     across(starts_with("open_"), ~ . / total_vendors * 100, .names = "percent_{col}"))
 
 
-tab4_overall <- data_clean %>%
+tabE1_overall <- data_clean %>%
   group_by(org_vendor) %>%
   summarize(
     median_vendor_cashiers = median(vendor_cashiers, na.rm = TRUE),
@@ -2044,20 +1957,20 @@ tab4_overall <- data_clean %>%
     max_foods_count = max(foods_count, na.rm = TRUE)
   ) %>%
   ungroup() %>%
-  left_join(tab4_overall_days, by = "org_vendor") %>%
+  left_join(tabE1_overall_days, by = "org_vendor") %>%
   mutate(
     vendor_cashiers_summary = paste0(median_vendor_cashiers, " (", iqr_vendor_cashiers, "), ", 
                                      min_vendor_cashiers, " - ", max_vendor_cashiers),
     foods_count_summary = paste0(median_foods_count, " (", iqr_foods_count, "), ",
                                  min_foods_count, " - ", max_foods_count),
     days_open_1_3_summary = paste0(`open_1-3`, " (", 
-                                   ifelse(`percent_open_1-3` < 1, round(`percent_open_1-3`, 1), round(`percent_open_1-3`)), 
+                                   ifelse(`percent_open_1-3` < 1, round(`percent_open_1-3`, 1), round(`percent_open_1-3`,1)), 
                                    "%)"),
     days_open_4_5_summary = paste0(`open_4-5`, " (", 
-                                   ifelse(`percent_open_4-5` < 1, round(`percent_open_4-5`, 1), round(`percent_open_4-5`)), 
+                                   ifelse(`percent_open_4-5` < 1, round(`percent_open_4-5`, 1), round(`percent_open_4-5`,1)), 
                                    "%)"),
     days_open_6_7_summary = paste0(`open_6-7`, " (", 
-                                   ifelse(`percent_open_6-7` < 1, round(`percent_open_6-7`, 1), round(`percent_open_6-7`)), 
+                                   ifelse(`percent_open_6-7` < 1, round(`percent_open_6-7`, 1), round(`percent_open_6-7`,1)), 
                                    "%)"),
   ) %>%
   select(org_vendor, vendor_cashiers_summary, days_open_1_3_summary, 
@@ -2065,12 +1978,12 @@ tab4_overall <- data_clean %>%
   mutate(org_vendor = recode(org_vendor, '1' = 'Organic','0' = 'Non-organic'))
 
 # Display the overall results
-print(tab4_overall)
+print(tabE1_overall)
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 4 - overall")
-writeData(table_outputs, sheet = "Table 4 - overall", x = tab4_overall)
+addWorksheet(table_outputs, "Table E1 - overall")
+writeData(table_outputs, sheet = "Table E1 - overall", x = tabE1_overall)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
 
@@ -2098,7 +2011,7 @@ for (country in countries) {
   
   # Perform the calculations
 
-  tabsx <- cbind(
+  tabE2 <- cbind(
 
     # Count all sentinel products
     data_filtered %>%
@@ -2119,10 +2032,10 @@ for (country in countries) {
       summarise(total_org = sum(total == "Yes", na.rm=T))
 
   ) %>%
-    mutate(perc_org = round(total_org/total_count*100, 2))
+    mutate(perc_org = round(total_org/total_count*100, 1))
 
 # Store the result in the list
-  results[[country]] <- tabsx
+  results[[country]] <- tabE2
 }
 
 # Access results for each country or overall
@@ -2134,7 +2047,7 @@ results[["Overall"]]
 
 
 # Create a unified table with results from all countries and Overall
-tabsx_final <- do.call(
+tabE2_final <- do.call(
   bind_rows,
   lapply(names(results), function(country) {
     results[[country]] %>%
@@ -2144,7 +2057,7 @@ tabsx_final <- do.call(
 )
 
 # Pivot to the desired format
-tabsx_final_wide <- tabsx_final %>%
+tabE2_final_wide <- tabE2_final %>%
   pivot_wider(
     names_from = Country, # Use Country as column headers
     values_from = c(total_org, total_count, perc_org), # Expand these columns
@@ -2155,24 +2068,24 @@ tabsx_final_wide <- tabsx_final %>%
 
 
 # Calculate the totals for each numeric column
-totals_row <- tabsx_final_wide %>%
+totals_row <- tabE2_final_wide %>%
   summarise(across(
     starts_with("Overall_total_org"):starts_with("UK_total_count"),
     ~ sum(.x, na.rm = TRUE)
   )) %>%
   mutate(
     food_count = "Total",
-    Overall_perc_org = round(Overall_total_org / Overall_total_count * 100, 2),
-    Brazil_perc_org = round(Brazil_total_org / Brazil_total_count * 100, 2),
-    India_perc_org = round(India_total_org / India_total_count * 100, 2),
-    UK_perc_org = round(UK_total_org / UK_total_count * 100, 2)
+    Overall_perc_org = round(Overall_total_org / Overall_total_count * 100, 1),
+    Brazil_perc_org = round(Brazil_total_org / Brazil_total_count * 100, 1),
+    India_perc_org = round(India_total_org / India_total_count * 100, 1),
+    UK_perc_org = round(UK_total_org / UK_total_count * 100, 1)
   )
 
 # Bind the totals row to the bottom of the table
-tabsx_final_totals <- bind_rows(tabsx_final_wide, totals_row)
+tabE2_final_totals <- bind_rows(tabE2_final_wide, totals_row)
 
 # Select and combine columns
-tabsx_final_output <- tabsx_final_totals %>%
+tabE2_final_output <- tabE2_final_totals %>%
   mutate(
     Overall = paste0(Overall_total_org, " (", Overall_perc_org, "%)"),
     Brazil = paste0(Brazil_total_org, " (", Brazil_perc_org, "%)"),
@@ -2182,19 +2095,12 @@ tabsx_final_output <- tabsx_final_totals %>%
   select(food_count, Overall, Brazil, India, UK)
 
 # Display the final table with totals
-tabsx_final_output
-
+tabE2_final_output
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 8 - country")
-writeData(table_outputs, sheet = "Table 8 - country", x = country)
-
-addWorksheet(table_outputs, "Table 8 - vendortype")
-writeData(table_outputs, sheet = "Table 8 - vendortype", x = vendortype)
-
-addWorksheet(table_outputs, "Table 8 - sentinelfood")
-writeData(table_outputs, sheet = "Table 8 - sentinelfood", x = sentinelfood)
+addWorksheet(table_outputs, "Table E2")
+writeData(table_outputs, sheet = "Table E2", x = tabE2_final_output)
 
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
@@ -2208,7 +2114,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Calculate number of organic and conventional vendors, median, IQR, min and max price
-tab5_city_data <- rice_prices_data %>%
+tabE3_city_data <- rice_prices_data %>%
   group_by(country, city) %>%
   summarise(
     count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
@@ -2225,7 +2131,7 @@ tab5_city_data <- rice_prices_data %>%
   ungroup()
 
 # Create the gt table
-tab5_city <- tab5_city_data %>%
+tabE3_city <- tabE3_city_data %>%
   gt(rowname_col = "city", groupname_col = c("country")) %>%
   cols_label(
     country = "Country",
@@ -2264,13 +2170,13 @@ tab5_city <- tab5_city_data %>%
   sub_missing() 
   
 # Display the table
-tab5_city
+tabE3_city
 
 
 # CREATE A BOXPLOT
 
 # Create table in correct data format
-tab5_boxplot <- tab5_city_data %>%
+tabE3_boxplot <- tabE3_city_data %>%
   # Calculate Q1 and Q3
   mutate(
     q1_org_rice = median_org_rice - (iqr_org_rice / 2),
@@ -2293,7 +2199,7 @@ tab5_boxplot <- tab5_city_data %>%
   )
 
 # Create boxplot  
-ggplot(tab5_boxplot, aes(x = city, fill = Type)) +
+ggplot(tabE3_boxplot, aes(x = city, fill = Type)) +
   geom_boxplot(
     aes(
       ymin = min,
@@ -2337,8 +2243,8 @@ ggplot(tab5_boxplot, aes(x = city, fill = Type)) +
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 5 - city")
-writeData(table_outputs, sheet = "Table 5 - city", x = tab5_city)
+addWorksheet(table_outputs, "Table E3 - city")
+writeData(table_outputs, sheet = "Table E3 - city", x = tabE3_city)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -2349,7 +2255,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Calculate number of organic and conventional vendors, median, IQR, min and max price
-tab5_country_data <- rice_prices_data %>%
+tabE3_country_data <- rice_prices_data %>%
   group_by(country) %>%
   summarise(
     count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
@@ -2365,7 +2271,7 @@ tab5_country_data <- rice_prices_data %>%
   ) %>%
   ungroup()
 
-tab5_country <- tab5_country_data %>%
+tabE3_country <- tabE3_country_data %>%
   gt() %>%
   cols_label(
     country = "Country",
@@ -2402,12 +2308,12 @@ tab5_country <- tab5_country_data %>%
   sub_missing() 
 
 # Display the table
-tab5_country
+tabE3_country
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 5 - country")
-writeData(table_outputs, sheet = "Table 5 - country", x = tab5_country)
+addWorksheet(table_outputs, "Table E3 - country")
+writeData(table_outputs, sheet = "Table E3 - country", x = tabE3_country)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -2418,7 +2324,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Calculate number of organic and conventional vendors, median, IQR, min and max price
-tab5_overall_data <- rice_prices_data %>%
+tabE3_overall_data <- rice_prices_data %>%
   summarise(
     count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
     count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg_usd)),
@@ -2434,7 +2340,7 @@ tab5_overall_data <- rice_prices_data %>%
   ungroup()
 
 # Create gt table
-tab5_overall <- tab5_overall_data %>%
+tabE3_overall <- tabE3_overall_data %>%
   gt() %>%
   cols_label(
     count_org_rice_vendors = "Organic sample size (n)",
@@ -2464,11 +2370,11 @@ tab5_overall <- tab5_overall_data %>%
   sub_missing() 
 
 # Display the table
-tab5_overall
+tabE3_overall
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 5 - overall")
-writeData(table_outputs, sheet = "Table 5 - overall", x = tab5_overall)
+addWorksheet(table_outputs, "Table E3 - overall")
+writeData(table_outputs, sheet = "Table E3 - overall", x = tabE3_overall)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -2478,35 +2384,35 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Create new instance of dataset for Table 9
-tab9_data <- data_clean
+tabE4_data <- data_clean
 
 
 # Export data for manual clean up of other certifications
 
-tab9_data_export <- tab9_data %>%
+tabE4_data_export <- tabE4_data %>%
   select(id, country, city, contains("_org_certif"))
 
 certifications <- createWorkbook()
 addWorksheet(certifications, "Certifications")
-writeData(certifications, sheet = "Certifications", x = tab9_data_export)
+writeData(certifications, sheet = "Certifications", x = tabE4_data_export)
 saveWorkbook(certifications, "C:/Users/s1985751/Documents/GitHub/fea/certifications.xlsx", overwrite = TRUE)
 
 
 # Import cleaned data
-tab9_cert_clean <- read.xlsx("~/GitHub/fea/Outputs/certifications_clean.xlsx", sheet = "Certifications")
+tabE4_cert_clean <- read.xlsx("~/GitHub/fea/Outputs/certifications_clean.xlsx", sheet = "Certifications")
 
 
 # Join with certification count columns
-tab9_cert_data <- left_join(
-  tab9_cert_clean %>%
+tabE4_cert_data <- left_join(
+  tabE4_cert_clean %>%
     select(id, country, everything()),
-  tab9_data %>%
+  tabE4_data %>%
     select(id, country, ban_cert, chic_cert, cof_cert, wht_cert, fj_cert, leaf_cert, 
            daal_cert, man_cert, milk_cert, mill_cert, nut_cert, rice_cert, tea_cert, tom_cert))
 
 
 # Vector with certification types variables without other columns
-vector_certifcols <- tab9_cert_data %>% 
+vector_certifcols <- tabE4_cert_data %>% 
   select(contains("_org_certif")) %>%
   select(-matches("_org_certif_None|_org_certif_other_1|_org_certif_other_2|_org_certif_other_3|_org_certif_other_4|_org_certif_other_5")) %>%
   names()
@@ -2515,8 +2421,8 @@ vector_certifcols <- tab9_cert_data %>%
 products <- c("ban","chic","cof","wht","fj","leaf","daal","man","milk","mill","nut","rice","tea","tom")
 
 # Define a function to summarise number of certification types
-tab9_product_fn <- function(product) {
-  tab9_cert_data %>%
+tabE4_product_fn <- function(product) {
+  tabE4_cert_data %>%
     group_by(country) %>%
     summarise(overall_cert_count = sum(get(paste0(product, "_cert")) == 1)) %>%
     mutate(product= product) %>%
@@ -2525,10 +2431,10 @@ tab9_product_fn <- function(product) {
 
 
 # Create table without other options
-tab9a <- left_join(
+tabE4a <- left_join(
   
   # Number of products with each certification type
-  certification_clean %>%
+  tabE4_cert_clean %>%
     select(country, all_of(vector_certifcols)) %>%
     pivot_longer(
       cols = all_of(vector_certifcols),
@@ -2547,7 +2453,7 @@ tab9a <- left_join(
     mutate(rank = row_number()) %>%
     select(product, country, everything()),
   # Apply the function to create a table with list of certification types and their number
-  tab9a_combined <- lapply(products, tab9_product_fn) %>%
+  tabE4a_combined <- lapply(products, tabE4_product_fn) %>%
     bind_rows() 
 ) %>%
   
@@ -2561,9 +2467,10 @@ tab9a <- left_join(
   arrange(country, product)
 
 
-addWorksheet(certifications, "Table 9A")
-writeData(certifications, sheet = "Table 9A", x = tab9a)
-saveWorkbook(certifications, "C:/Users/s1985751/Documents/GitHub/fea/certifications.xlsx", overwrite = TRUE)
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table E4 - overall")
+writeData(table_outputs, sheet = "Table E4 - overall", x = tabE4a)
+saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 
@@ -2574,7 +2481,7 @@ saveWorkbook(certifications, "C:/Users/s1985751/Documents/GitHub/fea/certificati
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Create new instance of dataset for Table 14
-tab14_data <- data_clean %>%
+tabE5_data <- data_clean %>%
   select(country, org_products_count, tom_org_discount, leaf_org_discount, ban_org_discount, man_org_discount,
          fj_org_discount, milk_org_discount, cof_org_discount, tea_org_discount, mill_org_discount, 
          chic_org_discount, daal_org_discount, wht_org_discount, rice_org_discount, nut_org_discount)
@@ -2584,11 +2491,11 @@ discount_vector <- c("tom_org_discount", "leaf_org_discount", "ban_org_discount"
          "fj_org_discount", "milk_org_discount", "cof_org_discount", "tea_org_discount", "mill_org_discount", 
          "chic_org_discount", "daal_org_discount", "wht_org_discount", "rice_org_discount", "nut_org_discount")
   
-tab14_data <- tab14_data %>%
+tabE5_data <- tabE5_data %>%
   mutate(discount_count = rowSums(select(., all_of(discount_vector)) == "Yes", na.rm = TRUE))
 
 # Create a table that summarises the number and percentage of organic sentinel products with a discount
-tab14 <- tab14_data %>%
+tabE5 <- tabE5_data %>%
   group_by(country) %>%
   summarise(
     discount = sum(discount_count, na.rm = TRUE),
@@ -2597,7 +2504,7 @@ tab14 <- tab14_data %>%
   )
 
 # Calculate 'Overall' row by summing all countries together
-overall_row <- tab14_data %>%
+overall_row <- tabE5_data %>%
   summarise(
     country = "Overall",  # Add "Overall" label
     discount = sum(discount_count, na.rm = TRUE),
@@ -2606,14 +2513,14 @@ overall_row <- tab14_data %>%
   ) 
 
 # Bind the 'Overall' row to the original table
-tab14 <- bind_rows(tab14, overall_row) %>%
+tabE5 <- bind_rows(tabE5, overall_row) %>%
   select(country, discount, org_count, discount_perc)
 
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 14")
-writeData(table_outputs, sheet = "Table 14", x = tab14)
+addWorksheet(table_outputs, "Table E5")
+writeData(table_outputs, sheet = "Table E5", x = tabE5)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -2628,7 +2535,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Create new instance of dataset for Table 12
-tab12_data <- data_clean
+tabE6_data <- data_clean
 
 # Vector of products and countries
 products <- c("tom", "leaf", "ban", "man", "fj", "milk", "cof", "tea", "mill", "chic", "daal", "wht", "rice", "nut")
@@ -2645,9 +2552,9 @@ product_position_fn <- function(data, product) {
     ) %>%
     mutate(
       product = product,
-      clustered_perc = round((clustered_count / org_count) * 100, 2),
-      dispersed_perc = round((dispersed_count / org_count) * 100, 2),
-      mostlyorg_perc = round((mostlyorg_count / org_count) * 100, 2)
+      clustered_perc = round((clustered_count / org_count) * 100, 1),
+      dispersed_perc = round((dispersed_count / org_count) * 100, 1),
+      mostlyorg_perc = round((mostlyorg_count / org_count) * 100, 1)
     )
 }
 
@@ -2655,9 +2562,9 @@ product_position_fn <- function(data, product) {
 results_list <- lapply(countries, function(country) {
   # Filter data by country
   if (country == "Overall") {
-    data <- tab12_data  # Use overall data for the "Overall" case
+    data <- tabE6_data  # Use overall data for the "Overall" case
   } else {
-    data <- tab12_data %>% filter(country == !!country)  # Ensure 'country' matches the actual column name in your dataset
+    data <- tabE6_data %>% filter(country == !!country)  # Ensure 'country' matches the actual column name in your dataset
   }
   
   # Create a summary for each product within the country
@@ -2671,10 +2578,10 @@ results_list <- lapply(countries, function(country) {
 })
 
 # Combine all country summaries into one data frame
-tab12_product_position <- bind_rows(results_list)
+tabE6_product_position <- bind_rows(results_list)
 
 # Calculate totals
-tab12_totals <- tab12_product_position %>%
+tabE6_totals <- tabE6_product_position %>%
   group_by(country) %>%
   summarise(
     org_count = sum(org_count, na.rm = TRUE),
@@ -2684,16 +2591,16 @@ tab12_totals <- tab12_product_position %>%
   ) %>%
   mutate(
     product = "Total",
-    clustered_perc = round((clustered_count / org_count) * 100, 2),
-    dispersed_perc = round((dispersed_count / org_count) * 100, 2),
-    mostlyorg_perc = round((mostlyorg_count / org_count) * 100, 2)
+    clustered_perc = round((clustered_count / org_count) * 100, 1),
+    dispersed_perc = round((dispersed_count / org_count) * 100, 1),
+    mostlyorg_perc = round((mostlyorg_count / org_count) * 100, 1)
   )
 
 # Add totals row
-tab12_product_with_total <- bind_rows(tab12_product_position, tab12_totals)
+tabE6_product_with_total <- bind_rows(tabE6_product_position, tabE6_totals)
 
 # Combine columns
-tab12_product_with_total <- tab12_product_with_total %>%
+tabE6_product_with_total <- tabE6_product_with_total %>%
   mutate(
     clustered = paste0(clustered_count, " (", clustered_perc, "%)"),
     dispersed = paste0(dispersed_count, " (", dispersed_perc, "%)"),
@@ -2702,7 +2609,7 @@ tab12_product_with_total <- tab12_product_with_total %>%
   select(product, country, clustered, dispersed, mostlyorg)
 
 # Reshape data to create a separate column for each country and sub-columns for clustered, dispersed, and mostlyorg
-tab12 <- tab12_product_with_total %>%
+tabE6 <- tabE6_product_with_total %>%
   pivot_wider(
     id_cols = product,
     names_from = country,
@@ -2716,12 +2623,12 @@ tab12 <- tab12_product_with_total %>%
   )
 
 # View the final table with totals row
-tab12
+tabE6
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 12")
-writeData(table_outputs, sheet = "Table 12", x = tab12)
+addWorksheet(table_outputs, "Table E6")
+writeData(table_outputs, sheet = "Table E6", x = tabE6)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -2734,40 +2641,40 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Create new instance of dataset for Table 13
-tab13_data <- data_clean
+tabE7_data <- data_clean
 
 # 1. Create table that counts the number of sentinel products for each STORE position
 
   # Create summary columns
   
-  tab13a <- tab13_data %>%
+  tabE7a <- tabE7_data %>%
     select(country, org_products_count, store_pos_front_count, store_pos_mid_count, store_pos_back_count) %>%
     group_by(country) %>%
     summarise(
       org_count = sum(org_products_count, na.rm = TRUE),
       front_count = sum(store_pos_front_count, na.rm = TRUE),
-      front_perc = round((front_count/org_count)*100, 2),
+      front_perc = round((front_count/org_count)*100, 1),
       mid_count = sum(store_pos_mid_count, na.rm = TRUE),
-      mid_perc = round((mid_count/org_count)*100, 2),
+      mid_perc = round((mid_count/org_count)*100, 1),
       back_count = sum(store_pos_back_count, na.rm = TRUE),
-      back_perc = round((back_count/org_count)*100, 2)
+      back_perc = round((back_count/org_count)*100, 1)
     )
   
   # Calculate 'Overall' row by summing all countries together
-  overall_row <- tab13_data %>%
+  overall_row <- tabE7_data %>%
     summarise(
       country = "Overall",  # Add "Overall" label
       org_count = sum(org_products_count, na.rm = TRUE),
       front_count = sum(store_pos_front_count, na.rm = TRUE),
-      front_perc = round((front_count / org_count) * 100, 2),
+      front_perc = round((front_count / org_count) * 100, 1),
       mid_count = sum(store_pos_mid_count, na.rm = TRUE),
-      mid_perc = round((mid_count / org_count) * 100, 2),
+      mid_perc = round((mid_count / org_count) * 100, 1),
       back_count = sum(store_pos_back_count, na.rm = TRUE),
-      back_perc = round((back_count / org_count) * 100, 2)
+      back_perc = round((back_count / org_count) * 100, 1)
     ) 
   
   # Bind the 'Overall' row to the original table
-  tab13a <- bind_rows(tab13a, overall_row) %>%
+  tabE7a <- bind_rows(tabE7a, overall_row) %>%
     select(country, front_count, front_perc, mid_count, mid_perc, back_count, back_perc) %>%
     # Pivot to longer format to consolidate absolute and relative columns by position
     pivot_longer(
@@ -2783,45 +2690,45 @@ tab13_data <- data_clean
     ) 
   
   # Reorder columns
-  tab13a <- tab13a %>%
+  tabE7a <- tabE7a %>%
     select(Store_Position, Overall_count, Overall_perc, Brazil_count, Brazil_perc,
            India_count, India_perc, UK_count, UK_perc)
   
   # View the final table
-  tab13a
+  tabE7a
 
 # 2. Create table that counts the number of sentinel products for each SHELF position
 
   # Create summary columns
   
-  tab13b <- tab13_data %>%
+  tabE7b <- tabE7_data %>%
     select(country, org_products_count, shelf_pos_upper_count, shelf_pos_mid_count, shelf_pos_lower_count) %>%
     group_by(country) %>%
     summarise(
       org_count = sum(org_products_count, na.rm = TRUE),
       upper_count = sum(shelf_pos_upper_count, na.rm = TRUE),
-      upper_perc = round((upper_count/org_count)*100, 2),
+      upper_perc = round((upper_count/org_count)*100, 1),
       mid_count = sum(shelf_pos_mid_count, na.rm = TRUE),
-      mid_perc = round((mid_count/org_count)*100, 2),
+      mid_perc = round((mid_count/org_count)*100, 1),
       lower_count = sum(shelf_pos_lower_count, na.rm = TRUE),
-      lower_perc = round((lower_count/org_count)*100, 2)
+      lower_perc = round((lower_count/org_count)*100, 1)
     )
   
   # Calculate 'Overall' row by summing all countries together
-  overall_row <- tab13_data %>%
+  overall_row <- tabE7_data %>%
     summarise(
       country = "Overall",  # Add "Overall" label
       org_count = sum(org_products_count, na.rm = TRUE),
       upper_count = sum(shelf_pos_upper_count, na.rm = TRUE),
-      upper_perc = round((upper_count / org_count) * 100, 2),
+      upper_perc = round((upper_count / org_count) * 100, 1),
       mid_count = sum(shelf_pos_mid_count, na.rm = TRUE),
-      mid_perc = round((mid_count / org_count) * 100, 2),
+      mid_perc = round((mid_count / org_count) * 100, 1),
       lower_count = sum(shelf_pos_lower_count, na.rm = TRUE),
-      lower_perc = round((lower_count / org_count) * 100, 2)
+      lower_perc = round((lower_count / org_count) * 100, 1)
     ) 
   
   # Bind the 'Overall' row to the original table
-  tab13b <- bind_rows(tab13b, overall_row) %>%
+  tabE7b <- bind_rows(tabE7b, overall_row) %>%
     select(country, upper_count, upper_perc, mid_count, mid_perc, lower_count, lower_perc) %>%
     # Pivot to longer format to consolidate absolute and relative columns by position
     pivot_longer(
@@ -2837,19 +2744,19 @@ tab13_data <- data_clean
     ) 
   
   # Reorder columns
-  tab13b <- tab13b %>%
+  tabE7b <- tabE7b %>%
     select(Shelf_Position, Overall_count, Overall_perc, Brazil_count, Brazil_perc,
            India_count, India_perc, UK_count, UK_perc)
   
   # View the final table
-  tab13b
+  tabE7b
   
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 13a")
-writeData(table_outputs, sheet = "Table 13a", x = tab13a)
-addWorksheet(table_outputs, "Table 13b")
-writeData(table_outputs, sheet = "Table 13b", x = tab13b)
+addWorksheet(table_outputs, "Table E7a")
+writeData(table_outputs, sheet = "Table E7a", x = tabE7a)
+addWorksheet(table_outputs, "Table E7b")
+writeData(table_outputs, sheet = "Table E7b", x = tabE7b)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -2865,7 +2772,7 @@ vector_brandnames <- data_clean %>%
   select(contains("brand_new")) %>%
   names()
 
-tab7 <- left_join(
+tabE8 <- left_join(
   # number of brands in each sentinel food
   data_clean %>%
     select(country, vector_brandnames) %>%
@@ -2891,7 +2798,7 @@ tab7 <- left_join(
 ) %>%
   # adjust variables
   mutate(food = paste(food, rank),
-         perc = round((n/n_brands)*100, 2),
+         perc = round((n/n_brands)*100, 1),
          brand = paste0(brand, " (", n, ", ", perc, "%)")) %>%
   select(country, food, brand) %>%
    # sort by 'food' column alphabetically
@@ -2900,11 +2807,11 @@ tab7 <- left_join(
   pivot_wider(names_from = country,
               values_from = brand)
 
-kable(tab7)
+kable(tabE8)
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 7")
-writeData(table_outputs, sheet = "Table 7", x = tab7)
+addWorksheet(table_outputs, "Table E8")
+writeData(table_outputs, sheet = "Table E8", x = tabE8)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
 
@@ -2914,18 +2821,18 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Create new instance of dataset for Table 10
-tab10_data <- data_clean
+tabE9_data <- data_clean
 
 
 # Vector with theme count variables
-vector_themes <- tab10_data %>% 
+vector_themes <- tabE9_data %>% 
   select(contains("theme_")) %>%
   select(-matches("theme_na_count|theme_none_count|theme_other_count|promo_theme")) %>%
   names()
 
 # Create the country-level summary table
 
-tab10_main <- tab10_data %>%
+tabE9_main <- tabE9_data %>%
   select(country, org_products_count, all_of(vector_themes)) %>%
   pivot_longer(
     cols = all_of(vector_themes),
@@ -2938,12 +2845,12 @@ tab10_main <- tab10_data %>%
     org_count = sum(org_products_count, na.rm = TRUE),
     .groups = 'drop'
   ) %>%
-  mutate(perc = round((theme_count / org_count)*100,2)) %>%
+  mutate(perc = round((theme_count / org_count)*100,1)) %>%
   select(country, theme, theme_count, perc)
 
 # Create the overall summary table
 
-tab10_overall <- tab10_data %>%
+tabE9_overall <- tabE9_data %>%
   select(org_products_count, all_of(vector_themes)) %>%
   pivot_longer(
     cols = all_of(vector_themes),
@@ -2957,14 +2864,14 @@ tab10_overall <- tab10_data %>%
     .groups = 'drop'
   ) %>%
   mutate(
-    perc = round((theme_count / org_count)*100,2),
+    perc = round((theme_count / org_count)*100,1),
     country = paste0("Overall")
     ) %>%
   select(country, theme, theme_count, perc)
 
 
 # Combine the main data with the overall summary
-tab10 <- bind_rows(tab10_main, tab10_overall) %>%
+tabE9 <- bind_rows(tabE9_main, tabE9_overall) %>%
   # Pivot wider to make countries as columns with theme_count and perc as sub-columns
   pivot_wider(
     names_from = country,
@@ -2976,8 +2883,8 @@ tab10 <- bind_rows(tab10_main, tab10_overall) %>%
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 10")
-writeData(table_outputs, sheet = "Table 10", x = tab10)
+addWorksheet(table_outputs, "Table E9")
+writeData(table_outputs, sheet = "Table E9", x = tabE9)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
 
@@ -2987,21 +2894,21 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Create new instance of dataset for Table 11
-tab11_data <- data_clean
+tabE10_data <- data_clean
 
 
 ## 1. FREQUENCY OF PROMOTIONAL MATERIALS
 
 # Create a table summarising the frequency of promotional materials
 
-tab11a <- tab11_data %>%
+tabE10a <- tabE10_data %>%
   group_by(country) %>%
   summarise(
     promo_count = sum(promo_count, na.rm = TRUE),
     org_count = sum(org_products_count, na.rm = TRUE)
   ) %>%
   mutate(
-    perc = round((promo_count/org_count)*100,2)
+    perc = round((promo_count/org_count)*100,1)
   ) %>%
   bind_rows(
     summarise(
@@ -3009,7 +2916,7 @@ tab11a <- tab11_data %>%
       country = "Overall",
       promo_count = sum(promo_count, na.rm = TRUE),
       org_count = sum(org_count, na.rm = TRUE),
-      perc = round((sum(promo_count, na.rm = TRUE) / sum(org_count, na.rm = TRUE)) * 100, 2)
+      perc = round((sum(promo_count, na.rm = TRUE) / sum(org_count, na.rm = TRUE)) * 100, 1)
     )
   ) %>%
   select(country, promo_count, perc) %>%
@@ -3025,14 +2932,14 @@ tab11a <- tab11_data %>%
 
 
 # Vector with promotional type count variables
-vector_type_promo <- tab11_data %>% 
+vector_type_promo <- tabE10_data %>% 
   select(contains("promo_type_")) %>%
   select(-matches("org_promo_type|promo_type_other")) %>%
   names()
 
 # Create the country-level summary table
 
-tab11b_main <- tab11_data %>%
+tabE10b_main <- tabE10_data %>%
   select(country, promo_count, all_of(vector_type_promo)) %>%
   filter(promo_count > 0 | is.na(promo_count)) %>% 
   pivot_longer(
@@ -3046,13 +2953,13 @@ tab11b_main <- tab11_data %>%
     promo_count = sum(promo_count, na.rm = TRUE),
     .groups = 'drop'
   ) %>%
-  mutate(perc = round((type_count / promo_count)*100,2)) %>%
+  mutate(perc = round((type_count / promo_count)*100,1)) %>%
   select(country, type, type_count, perc)
 
 
 # Create the overall summary table
 
-tab11b_overall <- tab11_data %>%
+tabE10b_overall <- tabE10_data %>%
   select(promo_count, all_of(vector_type_promo)) %>%
   pivot_longer(
     cols = all_of(vector_type_promo),
@@ -3066,14 +2973,14 @@ tab11b_overall <- tab11_data %>%
     .groups = 'drop'
   ) %>%
   mutate(
-    perc = round((type_count / promo_count)*100,2),
+    perc = round((type_count / promo_count)*100,1),
     country = paste0("Overall")
     ) %>%
   select(country, type, type_count, perc)
 
 
 # Combine the main data with the overall summary
-tab11b <- bind_rows(tab11b_main, tab11b_overall) %>%
+tabE10b <- bind_rows(tabE10b_main, tabE10b_overall) %>%
   # Pivot wider to make countries as columns with theme_count and perc as sub-columns
   pivot_wider(
     names_from = country,
@@ -3088,14 +2995,14 @@ tab11b <- bind_rows(tab11b_main, tab11b_overall) %>%
 ## 3. THEMES OF PROMOTIONAL MATERIALS
 
 # Vector with promotional theme count variables
-vector_themes_promo <- tab11_data %>% 
+vector_themes_promo <- tabE10_data %>% 
   select(contains("promo_theme_")) %>%
   select(-matches("promo_theme_other_count")) %>%
   names()
 
 # Create the country-level summary table
 
-tab11c_main <- tab11_data %>%
+tabE10c_main <- tabE10_data %>%
   select(country, promo_count, all_of(vector_themes_promo)) %>%
   filter(promo_count > 0 | is.na(promo_count)) %>% # Keep only rows with at least one product with a promotion
   pivot_longer(
@@ -3109,13 +3016,13 @@ tab11c_main <- tab11_data %>%
     promo_count = sum(promo_count, na.rm = TRUE),
     .groups = 'drop'
   ) %>%
-  mutate(perc = round((theme_count / promo_count)*100,2)) %>%
+  mutate(perc = round((theme_count / promo_count)*100,1)) %>%
   select(country, theme, theme_count, perc)
 
 
 # Create the overall summary table
 
-tab11c_overall <- tab11_data %>%
+tabE10c_overall <- tabE10_data %>%
   select(promo_count, all_of(vector_themes_promo)) %>%
   pivot_longer(
     cols = all_of(vector_themes_promo),
@@ -3129,14 +3036,14 @@ tab11c_overall <- tab11_data %>%
     .groups = 'drop'
   ) %>%
   mutate(
-    perc = round((theme_count / promo_count)*100,2),
+    perc = round((theme_count / promo_count)*100,1),
     country = paste0("Overall")
     ) %>%
   select(country, theme, theme_count, perc)
 
 
 # Combine the main data with the overall summary
-tab11c <- bind_rows(tab11c_main, tab11c_overall) %>%
+tabE10c <- bind_rows(tabE10c_main, tabE10c_overall) %>%
   # Pivot wider to make countries as columns with theme_count and perc as sub-columns
   pivot_wider(
     names_from = country,
@@ -3148,22 +3055,17 @@ tab11c <- bind_rows(tab11c_main, tab11c_overall) %>%
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 11a")
-writeData(table_outputs, sheet = "Table 11a", x = tab11a)
+addWorksheet(table_outputs, "Table E10a")
+writeData(table_outputs, sheet = "Table E10a", x = tabE10a)
 
-addWorksheet(table_outputs, "Table 11b")
-writeData(table_outputs, sheet = "Table 11b", x = tab11b)
+addWorksheet(table_outputs, "Table E10b")
+writeData(table_outputs, sheet = "Table E10b", x = tabE10b)
 
-addWorksheet(table_outputs, "Table 11c")
-writeData(table_outputs, sheet = "Table 11c", x = tab11c)
+addWorksheet(table_outputs, "Table E10c")
+writeData(table_outputs, sheet = "Table E10c", x = tabE10c)
 
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
-
-
-
-
-
 
 
 
@@ -3179,13 +3081,13 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 circle_order <- c("Higher","Middle","Lower")
   
 # Convert the circle column to a factor with the specified levels
-tab2s_data <- data_clean %>%
+tabS1_data <- data_clean %>%
   mutate(circle = factor(circle, levels = circle_order))
 
 # Filter to only foods, not beverages
 
 # Create table of neighbourhood data
-tab2s_neighbourhood <- tab2s_data %>%
+tabS1_neighbourhood <- tabS1_data %>%
   group_by(country, city, circle) %>%
   summarise(
     vendors = n(),
@@ -3197,7 +3099,7 @@ tab2s_neighbourhood <- tab2s_data %>%
   ungroup()
 
 # Create city rows
-tab2s_city <- tab2s_data %>%
+tabS1_city <- tabS1_data %>%
   group_by(country, city) %>%
   summarise(
     vendors = n(),
@@ -3209,7 +3111,7 @@ tab2s_city <- tab2s_data %>%
   ungroup()
 
 # Create country rows
-tab2s_country <- tab2s_data %>%
+tabS1_country <- tabS1_data %>%
   group_by(country) %>%
   summarise(
     vendors = n(),
@@ -3221,37 +3123,37 @@ tab2s_country <- tab2s_data %>%
   ungroup()
 
 # Combine all three tables (neighbourhood, city, and country) into one
-combined_tab2s <- bind_rows(
-  tab2s_neighbourhood %>%
+combined_tabS1 <- bind_rows(
+  tabS1_neighbourhood %>%
     mutate(level = "Neighbourhood"),
-  tab2s_city %>%
+  tabS1_city %>%
     mutate(level = "City"),
-  tab2s_country %>%
+  tabS1_country %>%
     mutate(level = "Country")
 )
 
 # Create a custom order for the 'level' column to ensure Neighbourhood rows come first, then City, and then Country
-combined_tab2s$level <- factor(combined_tab2s$level, levels = c("Neighbourhood", "City", "Country"))
+combined_tabS1$level <- factor(combined_tabS1$level, levels = c("Neighbourhood", "City", "Country"))
 
 # Sort the combined data by country, city, and the custom level order
-tab2s_final <- combined_tab2s %>%
+tabS1_final <- combined_tabS1 %>%
   arrange(country, city, level)
 
 # Merge columns
-tab2s_final <- tab2s_final %>%
+tabS1_final <- tabS1_final %>%
   mutate(
-    org_foodonly = paste0(count_org_vendors_foodonly, " (", round(org_vendor_perc_foodonly * 100, 2), "%)"),
+    org_foodonly = paste0(count_org_vendors_foodonly, " (", round(org_vendor_perc_foodonly * 100, 1), "%)"),
     sentinels_foodonly = paste0(median_org_products_count_foodonly, " (", iqr_org_products_count_foodonly, ")")
   ) %>%
   select(country, city, circle, vendors, org_foodonly, sentinels_foodonly)
 
 # Print table
-print(tab2s_final)
+print(tabS1_final)
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 2s")
-writeData(table_outputs, sheet = "Table 2s", x = tab2s_final)
+addWorksheet(table_outputs, "Table S1")
+writeData(table_outputs, sheet = "Table S1", x = tabS1_final)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -3265,7 +3167,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ##### For each neighbourhood within each city
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 # N, %, median and IQR - neighbourhood level
-tab3_neighbourhood_data <- data_clean %>%
+tabS2_neighbourhood_data <- data_clean %>%
   group_by(country, city, circle) %>%
   summarize(
     organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
@@ -3277,7 +3179,7 @@ tab3_neighbourhood_data <- data_clean %>%
   ungroup()
 
 # Create the gt table
-tab3_neighbourhood <- tab3_neighbourhood_data %>%
+tabS2_neighbourhood <- tabS2_neighbourhood_data %>%
   gt(rowname_col = "circle", groupname_col = c("country","city")) %>%
   cols_label(
     country = "Country",
@@ -3290,7 +3192,7 @@ tab3_neighbourhood <- tab3_neighbourhood_data %>%
   ) %>%
   fmt_percent(
     columns = vars(perc_multiple_org_binary),
-    decimals = 0
+    decimals = 1
   ) %>%
   cols_merge(
     columns = c("n_multiple_org_binary", "perc_multiple_org_binary"),
@@ -3303,11 +3205,11 @@ tab3_neighbourhood <- tab3_neighbourhood_data %>%
   sub_missing() 
   
 # Display the table
-tab3_neighbourhood
+tabS2_neighbourhood
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 3 - neighbourhood")
-writeData(table_outputs, sheet = "Table 3 - neighbourhood", x = tab3_neighbourhood)
+addWorksheet(table_outputs, "Table S2 - neighbourhood")
+writeData(table_outputs, sheet = "Table S2 - neighbourhood", x = tabS2_neighbourhood)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -3315,7 +3217,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ##### For each city within each country
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 # N, %, median and IQR - city level
-tab3_city_data <- data_clean %>%
+tabS2_city_data <- data_clean %>%
   group_by(country, city) %>%
   summarize(
     organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
@@ -3327,7 +3229,7 @@ tab3_city_data <- data_clean %>%
   ungroup()
 
 # Create the gt table
-tab3_city <- tab3_city_data %>%
+tabS2_city <- tabS2_city_data %>%
   gt(rowname_col = "city", groupname_col = "country") %>%
   cols_label(
     country = "Country",
@@ -3339,7 +3241,7 @@ tab3_city <- tab3_city_data %>%
   ) %>%
   fmt_percent(
     columns = vars(perc_multiple_org_binary),
-    decimals = 0
+    decimals = 1
   ) %>%
   cols_merge(
     columns = c("n_multiple_org_binary", "perc_multiple_org_binary"),
@@ -3352,40 +3254,40 @@ tab3_city <- tab3_city_data %>%
   sub_missing() 
   
 # Display the table
-tab3_city
+tabS2_city
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 3 - city")
-writeData(table_outputs, sheet = "Table 3 - city", x = tab3_city)
+addWorksheet(table_outputs, "Table S2 - city")
+writeData(table_outputs, sheet = "Table S2 - city", x = tabS2_city)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
 
 ##### For each country
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 # N, %, median and IQR - country level
-tab3_country_data <- data_clean %>%
+tabS2_country_data <- data_clean %>%
   group_by(country) %>%
   summarize(
     organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
     n_multiple_org_binary = sum(multiple_org_binary == 1, na.rm = TRUE),
-    perc_multiple_org_binary = n_multiple_org_binary / organic_vendors,
+    perc_multiple_org_binary = round((n_multiple_org_binary / organic_vendors)*100,1),
     median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
     iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
   ) %>%
   ungroup()
 
-print(tab3_country_data)
+print(tabS2_country_data)
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 3 - country")
-writeData(table_outputs, sheet = "Table 3 - country", x = tab3_country_data)
+addWorksheet(table_outputs, "Table S2 - country")
+writeData(table_outputs, sheet = "Table S2 - country", x = tabS2_country_data)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
 
 ##### Overall
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 # N, %, median and IQR - overall
-tab3_overall_data <- data_clean %>%
+tabS2_overall_data <- data_clean %>%
   summarize(
     organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
     n_multiple_org_binary = sum(multiple_org_binary == 1, na.rm = TRUE),
@@ -3395,11 +3297,11 @@ tab3_overall_data <- data_clean %>%
   ) %>%
   ungroup()
 
-print(tab3_overall_data)
+print(tabS2_overall_data)
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 3 - overall")
-writeData(table_outputs, sheet = "Table 3 - overall", x = tab3_overall_data)
+addWorksheet(table_outputs, "Table S2 - overall")
+writeData(table_outputs, sheet = "Table S2 - overall", x = tabS2_overall_data)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -3412,7 +3314,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 
 # Calculate number of organic and conventional vendors, median, IQR, min and max price
 # Filtered on vendors with both organic and conventional rice
-tabs1_city_data <- rice_prices_data %>%
+tabS3_city_data <- rice_prices_data %>%
   filter(rice_price_both == 1) %>%
   group_by(country, city) %>%
   summarise(
@@ -3430,7 +3332,7 @@ tabs1_city_data <- rice_prices_data %>%
   ungroup()
 
 # Create the gt table
-tabs1_city <- tabs1_city_data %>%
+tabS3_city <- tabS3_city_data %>%
   gt(rowname_col = "city", groupname_col = c("country")) %>%
   cols_label(
     country = "Country",
@@ -3469,11 +3371,11 @@ tabs1_city <- tabs1_city_data %>%
   sub_missing() 
   
 # Display the table
-tabs1_city
+tabS3_city
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table S1 - city")
-writeData(table_outputs, sheet = "Table S1 - city", x = tabs1_city)
+addWorksheet(table_outputs, "Table S3 - city")
+writeData(table_outputs, sheet = "Table S3 - city", x = tabS3_city)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -3484,7 +3386,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 
 # Calculate number of organic and conventional vendors, median, IQR, min and max price
 # Filtered on vendors with both organic and conventional rice
-tabs1_country_data <- rice_prices_data %>%
+tabS3_country_data <- rice_prices_data %>%
   filter(rice_price_both == 1) %>%
   group_by(country) %>%
   summarise(
@@ -3501,7 +3403,7 @@ tabs1_country_data <- rice_prices_data %>%
   ) %>%
   ungroup()
 
-tabs1_country <- tabs1_country_data %>%
+tabS3_country <- tabS3_country_data %>%
   gt() %>%
   cols_label(
     country = "Country",
@@ -3538,11 +3440,11 @@ tabs1_country <- tabs1_country_data %>%
   sub_missing() 
 
 # Display the table
-tabs1_country
+tabS3_country
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table S1 - country")
-writeData(table_outputs, sheet = "Table S1 - country", x = tabs1_country)
+addWorksheet(table_outputs, "Table S3 - country")
+writeData(table_outputs, sheet = "Table S3 - country", x = tabS3_country)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 
@@ -3555,7 +3457,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 
 # Calculate number of organic and conventional vendors, median, IQR, min and max price
 # Filtered on vendors with both organic and conventional rice
-tabs1_overall_data <- rice_prices_data %>%
+tabS3_overall_data <- rice_prices_data %>%
   filter(rice_price_both == 1) %>%
   summarise(
     count_org_rice_vendors = sum(!is.na(rice_price_org_kg_usd)),
@@ -3571,7 +3473,7 @@ tabs1_overall_data <- rice_prices_data %>%
   ) %>%
   ungroup()
 
-tabs1_overall <- tabs1_overall_data %>%
+tabS3_overall <- tabS3_overall_data %>%
   gt() %>%
   cols_label(
     count_org_rice_vendors = "Organic sample size (n)",
@@ -3601,15 +3503,101 @@ tabs1_overall <- tabs1_overall_data %>%
   sub_missing() 
 
 # Display the table
-tabs1_overall
+tabS3_overall
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table S1 - overall")
-writeData(table_outputs, sheet = "Table S1 - overall", x = tabs1_overall)
+addWorksheet(table_outputs, "Table S3 - overall")
+writeData(table_outputs, sheet = "Table S3 - overall", x = tabS3_overall)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 
 ```
+
+
+#### Wilcoxon Signed Rank Test
+
+###### Overall results
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of rice prices for vendors selling both organic and conventional
+wsr_rice_prices_data_overall <- rice_prices_data %>%
+  select(rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
+  filter(rice_price_both == 1)
+
+# Overall Wilcoxon Signed Rank test
+wsr_overall_test <- wilcox.test(wsr_rice_prices_data_overall$rice_price_org_kg_usd,
+                            wsr_rice_prices_data_overall$rice_price_conv_kg_usd,
+                            alternative = "greater", paired = TRUE)
+
+wsr_overall_p_value_one_tailed <- wsr_overall_test$p.value / 2
+
+print(wsr_overall_test)
+cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_overall_p_value_one_tailed, "\n")
+
+```
+
+###### Country-level results: Brazil
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of rice prices for vendors selling both organic and conventional
+wsr_rice_prices_data_brazil <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
+  filter(rice_price_both == 1) %>%
+  filter(country == "Brazil")
+
+# Overall Wilcoxon Signed Rank test
+wsr_brazil_test <- wilcox.test(wsr_rice_prices_data_brazil$rice_price_org_kg_usd,
+                            wsr_rice_prices_data_brazil$rice_price_conv_kg_usd,
+                            alternative = "greater", paired = TRUE)
+
+wsr_brazil_p_value_one_tailed <- wsr_brazil_test$p.value / 2
+
+print(wsr_brazil_test)
+cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_brazil_p_value_one_tailed, "\n")
+
+```
+
+
+###### Country-level results: India
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of rice prices for vendors selling both organic and conventional
+wsr_rice_prices_data_india <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
+  filter(rice_price_both == 1) %>%
+  filter(country == "India")
+
+# Overall Wilcoxon Signed Rank test
+wsr_india_test <- wilcox.test(wsr_rice_prices_data_india$rice_price_org_kg_usd,
+                            wsr_rice_prices_data_india$rice_price_conv_kg_usd,
+                            alternative = "greater", paired = TRUE)
+
+wsr_india_p_value_one_tailed <- wsr_india_test$p.value / 2
+
+print(wsr_india_test)
+cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_india_p_value_one_tailed, "\n")
+```
+
+###### Country-level results: UK
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# Create data frame of rice prices for vendors selling both organic and conventional
+wsr_rice_prices_data_uk <- rice_prices_data %>%
+  select(country, rice_price_org_kg_usd, rice_price_conv_kg_usd, rice_price_both) %>%
+  filter(rice_price_both == 1) %>%
+  filter(country == "UK")
+
+# Overall Wilcoxon Signed Rank test
+wsr_uk_test <- wilcox.test(wsr_rice_prices_data_uk$rice_price_org_kg_usd,
+                            wsr_rice_prices_data_uk$rice_price_conv_kg_usd,
+                            alternative = "greater", paired = TRUE)
+
+wsr_uk_p_value_one_tailed <- wsr_uk_test$p.value / 2
+
+print(wsr_uk_test)
+cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_uk_p_value_one_tailed, "\n")
+```
+
 
 
 
@@ -3658,8 +3646,8 @@ combined_tab_proceed <- bind_rows(
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table S3")
-writeData(table_outputs, sheet = "Table S3", x = combined_tab_proceed)
+addWorksheet(table_outputs, "Table S4")
+writeData(table_outputs, sheet = "Table S4", x = combined_tab_proceed)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 ```
 
@@ -3796,7 +3784,7 @@ saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_output
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
 # Create new instance of dataset for Table S5
-tabS5_data_india <- data_clean %>%
+tab4b_india_data <- data_clean %>%
   filter(country == "India")
 
 # Vector of product abbreviations
@@ -3809,7 +3797,7 @@ countries <- c("Brazil", "India", "UK", "Overall")
 create_category_summary <- function(data) {
   
   # PRODUCT-LEVEL SUMMARY
-  tabS5_product_summary_list <- lapply(products, function(product) {
+  tab4b_india_product_summary_list <- lapply(products, function(product) {
     data %>%
       summarise(
         org_count = sum(get(paste0(product, "_org")) == "Yes", na.rm = TRUE),
@@ -3873,10 +3861,10 @@ create_category_summary <- function(data) {
       select(category, product, everything())
   })
   
-  tabS5_product_summary <- bind_rows(tabS5_product_summary_list)
+  tab4b_india_product_summary <- bind_rows(tab4b_india_product_summary_list)
   
   # CATEGORY-LEVEL SUMMARY
-  tabS5_category_summary <- tabS5_product_summary %>%
+  tab4b_india_category_summary <- tab4b_india_product_summary %>%
     group_by(category) %>%
     summarise(
       cat_org_count = sum(org_count, na.rm = TRUE),
@@ -3916,7 +3904,7 @@ create_category_summary <- function(data) {
     )
 
   # Calculate the totals across all categories
-  totals_row <- tabS5_category_summary %>%
+  totals_row <- tab4b_india_category_summary %>%
     summarise(
       category = "Total",
       cat_org_count = sum(cat_org_count, na.rm = TRUE),
@@ -3956,18 +3944,18 @@ create_category_summary <- function(data) {
     )
 
   # Append the totals row to the category summary table
-  tabS5_category_summary <- bind_rows(tabS5_category_summary, totals_row)
+  tab4b_india_category_summary <- bind_rows(tab4b_india_category_summary, totals_row)
 
-  return(tabS5_category_summary)
+  return(tab4b_india_category_summary)
 }
 
 # Run the function for each country and combine results into one table
 results_list <- lapply(countries, function(country) {
   if (country == "Overall") {
-    data <- tabS5_data_india
+    data <- tab4b_india_data
   } else {
     # Ensure filtering by country works
-    data <- tabS5_data_india %>% filter(country == !!country)
+    data <- tab4b_india_data %>% filter(country == !!country)
   }
   summary_table <- create_category_summary(data)
   summary_table %>%
@@ -3976,10 +3964,10 @@ results_list <- lapply(countries, function(country) {
 })
 
 # Combine all results
-tabS5_combined_summary <- bind_rows(results_list)
+tab4b_india_combined_summary <- bind_rows(results_list)
 
 # Mutate to combine and clean up columns
-tabS5_combined_summary <- tabS5_combined_summary %>%
+tab4b_india_combined_summary <- tab4b_india_combined_summary %>%
     mutate(
       term_organic = paste0(cat_term_organic_certified, " (", round(cat_term_organic_certified_perc * 100), "%)"),
       term_natural = paste0(cat_term_natural_certified, " (", round(cat_term_natural_certified_perc * 100), "%)"),
@@ -3994,7 +3982,7 @@ tabS5_combined_summary <- tabS5_combined_summary %>%
          term_chemfree, term_pestfree, term_bioprod, term_bio, term_eco, term_gmo)
 
 # View the final combined summary table
-tabS5_combined_summary
+tab4b_india_combined_summary
 
 
 
@@ -4038,15 +4026,15 @@ create_term_summary <- function(data) {
 }
 
 # Apply the function to generate term-level summary for the entire dataset
-term_summary_table <- create_term_summary(tabS5_data_india)
+term_summary_table_india <- create_term_summary(tab4b_india_data)
 
 # View the final term summary table
-term_summary_table
+term_summary_table_india
 
 
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table S5")
-writeData(table_outputs, sheet = "Table S5", x = term_summary_table)
+addWorksheet(table_outputs, "Table 4b - INDIA")
+writeData(table_outputs, sheet = "Table 4b - INDIA", x = term_summary_table_india)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
