@@ -1036,24 +1036,88 @@ tab2_fig_neighbourhood <- tab2_fig_data %>%
   ) %>%
   ungroup()
 
-# Create grouped bar chart by country
-ggplot(tab2_fig_neighbourhood, aes(x = circle, y = org_vendor_perc, fill = city)) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.8)) +  # Grouped bars
-  facet_wrap(~ country, ncol = 1, scales = "free_y") +   # Facet countries in separate rows
-  labs(
-    x = "Neighbourhood",
-    y = "Organic Vendor Percentage"
-  ) +
-  theme_light() +
-  theme(
-    strip.text = element_text(size = 12, face = "bold"),  # Country panel titles
-    axis.text.x = element_text(angle = 45, hjust = 1),   # Rotated x-axis labels
-    legend.title = element_text(size = 10),              # Adjust legend title size
-    legend.text = element_text(size = 8),                # Adjust legend text size
-    legend.position = "bottom"                           # Move legend to bottom
-  )
+# # Create grouped bar chart by country
+# ggplot(tab2_fig_neighbourhood, aes(x = circle, y = org_vendor_perc, fill = city)) +
+#   geom_bar(stat = "identity", position = position_dodge(width = 0.8)) +  # Grouped bars
+#   facet_wrap(~ country, ncol = 1, scales = "free_y") +   # Facet countries in separate rows
+#   labs(
+#     x = "Neighbourhood",
+#     y = "Organic Vendor Percentage"
+#   ) +
+#   theme_light() +
+#   theme(
+#     strip.text = element_text(size = 12, face = "bold"),  # Country panel titles
+#     axis.text.x = element_text(angle = 45, hjust = 1),   # Rotated x-axis labels
+#     legend.title = element_text(size = 10),              # Adjust legend title size
+#     legend.text = element_text(size = 8),                # Adjust legend text size
+#     legend.position = "bottom"                           # Move legend to bottom
+#   )
+
+### packages
+library(grid)
+library(gridExtra)
+
+ 
+### fucntion to create plot 
+figure1_function <- function (x) {
+  p <- ggplot(data = x, aes(x = city, y = org_vendor_perc, fill = circle)) +
+    geom_bar(stat = "identity", position = position_dodge(width = 0.8)) +  # Grouped bars
+    labs(
+      x = element_blank(),
+      y = element_blank(),
+      fill = "Socio-economic level"
+    ) +
+    ylim(0, 1) +
+    theme_light(base_size = 14) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),   # Rotated x-axis labels
+      legend.position = "none"                           # no legeng 
+    )
+  return(p)
+  
+}
+  
+### create a plot for each country
+br <- figure1_function(tab2_fig_neighbourhood %>% filter(country %in% "Brazil")) + ggtitle("Brazil")
+india <- figure1_function(tab2_fig_neighbourhood %>% filter(country %in% "India")) + ggtitle("India")
+uk <- figure1_function(tab2_fig_neighbourhood %>% filter(country %in% "UK")) + ggtitle("UK")
 
 
+# shared axis labels
+y <- textGrob("Organic Vendor Percentage", rot = 90, gp = gpar(fontsize = 16))
+x <- textGrob("City", gp = gpar(fontsize = 16))
+
+# combine plots
+combined_plot <- grid.arrange(br, india, uk, 
+                              ncol = 3,
+                              left = y, 
+                              bottom = x)
+
+
+# Create a function that extracts legend
+get_only_legend <- function(plot) { 
+  
+  # get tabular interpretation of plot 
+  plot_table <- ggplot_gtable(ggplot_build(plot))  
+  
+  #  Mark only legend in plot 
+  legend_plot <- which(sapply(plot_table$grobs, function(x) x$name) == "guide-box")  
+  
+  # extract legend 
+  legend <- plot_table$grobs[[legend_plot]] 
+  
+  # return legend 
+  return(legend)  
+}
+
+
+# extract legend from plot1 using above function 
+legend <- get_only_legend(uk + theme(legend.position = "bottom",
+                                     legend.title = element_text(size = 14),
+                                     legend.text = element_text(size =14))) 
+
+# final combined plot with shared legend 
+grid.arrange(combined_plot, legend, nrow = 2, heights = c(10, 1))
 
 
 # Create scatterplot stacked by country
