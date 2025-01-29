@@ -10,6 +10,8 @@ output: word_document
 library(dplyr)
 library(ggplot2)
 library(gmodels)
+library(grid)
+library(gridExtra)
 library(gt)
 library(knitr)
 library(kableExtra)
@@ -1057,17 +1059,22 @@ tab2_fig_neighbourhood <- tab2_fig_data %>%
 library(grid)
 library(gridExtra)
 
+# Establish values for colourblind palette
+cbPalette <- c("#88CCEE", "#44AA99", "#DDCC77", "#117733", "#999933", "#CC6677", "#882255", "#AA4499")
+
  
-### fucntion to create plot 
+### function to create plot 
 figure1_function <- function (x) {
   p <- ggplot(data = x, aes(x = city, y = org_vendor_perc, fill = circle)) +
-    geom_bar(stat = "identity", position = position_dodge(width = 0.8)) +  # Grouped bars
+    geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +  # Grouped bars
     labs(
       x = element_blank(),
       y = element_blank(),
-      fill = "Socio-economic level"
+      fill = "Neighbourhood income level"
     ) +
-    ylim(0, 1) +
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, 1)) +
+    #ylim(0, 1) +
+    scale_fill_manual(values=cbPalette) +
     theme_light(base_size = 14) +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1),   # Rotated x-axis labels
@@ -1120,6 +1127,17 @@ legend <- get_only_legend(uk + theme(legend.position = "bottom",
 grid.arrange(combined_plot, legend, nrow = 2, heights = c(10, 1))
 
 
+# Combine plots and legend into a single grob
+final_plot <- arrangeGrob(combined_plot, legend, nrow = 2, heights = c(10, 1))
+
+# Save the full plot with legend
+ggsave("figure1.png", 
+       final_plot, 
+       path = "C:/Users/s1985751/Documents/GitHub/fea/Outputs",
+       width = 12, height = 8, dpi = 300)
+
+
+
 # Create scatterplot stacked by country
 # ggplot(tab2_fig_neighbourhood, aes(x = circle, y = org_vendor_perc, color = circle)) +
 #   geom_point(size = 3, alpha = 0.8) +         # Scatter points
@@ -1136,13 +1154,10 @@ grid.arrange(combined_plot, legend, nrow = 2, heights = c(10, 1))
 #   )
 
 
-
-
-
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table 2 - Figure")
-writeData(table_outputs, sheet = "Table 2 - Figure", x = tab2_fig_neighbourhood)
-saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+#addWorksheet(table_outputs, "Table 2 - Figure")
+#writeData(table_outputs, sheet = "Table 2 - Figure", x = tab2_fig_neighbourhood)
+#saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 
@@ -1573,6 +1588,80 @@ tab3_combined_summary
 addWorksheet(table_outputs, "Table 3")
 writeData(table_outputs, sheet = "Table 3", x = tab3_combined_summary)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+
+
+
+
+
+# Create table for bar plot
+
+tab3_fig_data <- bind_rows(results_list)
+
+tab3_fig_data <- tab3_fig_data %>%
+  filter(category == "Total") %>%
+  select(country, cat_term_organic_perc, cat_term_natural_perc, 
+         cat_term_chemfree_perc, cat_term_pestfree_perc, cat_term_eco_perc) %>%
+  rename(
+    Organic = cat_term_organic_perc,
+    Natural = cat_term_natural_perc,
+    `Chemical-free` = cat_term_chemfree_perc,
+    `Pesticide-free` = cat_term_pestfree_perc,
+    Eco = cat_term_eco_perc
+  )
+
+# Create vector of terminology percentage columns
+terms <- c("Organic","Natural","Chemical-free", "Pesticide-free", "Eco")
+
+# Convert data to long format
+tab3_fig_data_long <- tab3_fig_data %>%
+  pivot_longer(cols = c(terms),
+               names_to = "term", 
+               values_to = c("percentage")) 
+
+
+# Ensure the correct order of countries
+tab3_fig_data_long$country <- factor(tab3_fig_data_long$country, 
+                                      levels = c("Brazil", "India", "UK", "Overall"))
+
+# Ensure the correct order of terms
+tab3_fig_data_long$term <- factor(tab3_fig_data_long$term, 
+                                   levels = c("Organic", "Natural", "Chemical-free", "Pesticide-free", "Eco"))
+
+
+# Establish values for colourblind palette
+cbPalette <- c("#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#CC6677", "#882255", "#AA4499")
+
+# Create barplot
+tab3_fig <- ggplot(data = tab3_fig_data_long, aes(x = country, y = percentage, fill = term)) +
+    geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +  # Grouped bars
+    labs(
+      x = "Terminology",
+      y = "Proportion of products using terminology",
+      fill = element_blank()
+    ) +
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, 1)) +
+    #ylim(0, 1) +
+    scale_fill_manual(values=cbPalette) +
+    theme_light(base_size = 14) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),   # Rotated x-axis labels
+      legend.position = "bottom",
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size =14)
+    )
+
+# Display plot
+tab3_fig
+
+# Save the full plot with legend
+ggsave("tab3_figure.png", 
+       tab3_fig, 
+       path = "C:/Users/s1985751/Documents/GitHub/fea/Outputs",
+       width = 12, height = 8, dpi = 300)
+
+
+
 
 ```
 
