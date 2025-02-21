@@ -1431,7 +1431,12 @@ table(combined_data$proceed_other) # Initially was one other response - a testin
       
       # There are 4 outliers, again all in the UK, mostly in London
 
+   # Clean Sinop data, which has same conventional price input into both conventional and organic columns, but no organic rice
       
+    rice_prices_data <- rice_prices_data %>%
+      mutate(rice_price_org = ifelse(city == "Sinop", NA, rice_price_org),
+             rice_price_org_kg = ifelse(city == "Sinop", NA, rice_price_org_kg),
+             rice_price_org_kg_usd = ifelse(city == "Sinop", NA, rice_price_org_kg_usd))
       
       
 

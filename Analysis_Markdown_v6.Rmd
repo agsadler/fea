@@ -18,6 +18,7 @@ library(kableExtra)
 library(openxlsx)
 library(readxl)
 library(readr)
+library(scales)
 library(stats)
 library(tidyr)
 library(tidyverse)
@@ -62,9 +63,9 @@ tab1_neighbourhood_data <- data_clean %>%
   ungroup() %>%
   left_join(tab1_total_vendors, by = c("country", "city")) %>%
   mutate(
-    higher_perc = round((Higher / total_vendors)*100,2),
-    middle_perc = round((Middle / total_vendors)*100,2),
-    lower_perc = round((Lower / total_vendors)*100,2)
+    higher_perc = round((Higher / total_vendors)*100),
+    middle_perc = round((Middle / total_vendors)*100),
+    lower_perc = round((Lower / total_vendors)*100)
   ) %>%
   select(country, city, total_vendors, Higher, higher_perc, Middle, middle_perc, Lower, lower_perc)
 
@@ -76,9 +77,9 @@ tab1_store_data <- data_clean %>%
   ungroup() %>%
   left_join(tab1_total_vendors, by = c("country", "city")) %>%
   mutate(
-    supermarket_perc = round((Supermarket / total_vendors)*100,2),
-    mobile_vendor_perc = round((`Mobile vendor` / total_vendors)*100,2),
-    stationary_small_vendor_perc = round((`Stationary small local vendor` / total_vendors)*100,2)
+    supermarket_perc = round((Supermarket / total_vendors)*100),
+    mobile_vendor_perc = round((`Mobile vendor` / total_vendors)*100),
+    stationary_small_vendor_perc = round((`Stationary small local vendor` / total_vendors)*100)
   ) %>%
   select(country, city, `Mobile vendor`, mobile_vendor_perc, `Stationary small local vendor`, stationary_small_vendor_perc, Supermarket, supermarket_perc,  )
 
@@ -100,12 +101,12 @@ tab1_country_totals <- tab1_data %>%
     Supermarket = sum(Supermarket, na.rm = TRUE)
   ) %>%
   mutate(
-    higher_perc = round((Higher / total_vendors)*100, 2),
-    middle_perc = round((Middle / total_vendors)*100, 2),
-    lower_perc = round((Lower / total_vendors)*100, 2),
-    mobile_vendor_perc = round((`Mobile vendor` / total_vendors)*100,2),
-    stationary_small_vendor_perc = round((`Stationary small local vendor` / total_vendors)*100,2),
-    supermarket_perc = round((Supermarket / total_vendors)*100,2),
+    higher_perc = round((Higher / total_vendors)*100),
+    middle_perc = round((Middle / total_vendors)*100),
+    lower_perc = round((Lower / total_vendors)*100),
+    mobile_vendor_perc = round((`Mobile vendor` / total_vendors)*100),
+    stationary_small_vendor_perc = round((`Stationary small local vendor` / total_vendors)*100),
+    supermarket_perc = round((Supermarket / total_vendors)*100),
     city = "Total"  # Mark these as totals per country
   )
 
@@ -122,12 +123,12 @@ tab1_overall_totals <- tab1_data %>%
     Supermarket = sum(Supermarket, na.rm = TRUE)
   ) %>%
   mutate(
-    higher_perc = round((Higher / total_vendors)*100,2),
-    middle_perc = round((Middle / total_vendors)*100,2),
-    lower_perc = round((Lower / total_vendors)*100,2),
-    mobile_vendor_perc = round((`Mobile vendor` / total_vendors)*100,2),
-    stationary_small_vendor_perc = round((`Stationary small local vendor` / total_vendors)*100,2),
-    supermarket_perc = round((Supermarket / total_vendors)*100,2),
+    higher_perc = round((Higher / total_vendors)*100),
+    middle_perc = round((Middle / total_vendors)*100),
+    lower_perc = round((Lower / total_vendors)*100),
+    mobile_vendor_perc = round((`Mobile vendor` / total_vendors)*100),
+    stationary_small_vendor_perc = round((`Stationary small local vendor` / total_vendors)*100),
+    supermarket_perc = round((Supermarket / total_vendors)*100),
     city = "Overall"
   )
 
@@ -999,7 +1000,7 @@ tab2_final <- combined_tab2 %>%
 # Merge columns
 tab2_final <- tab2_final %>%
   mutate(
-    org = paste0(count_org_vendors, " (", round(org_vendor_perc * 100, 1), "%)"),
+    org = paste0(count_org_vendors, " (", round(org_vendor_perc * 100), "%)"),
     sentinels = paste0(median_org_products_count, " (", iqr_org_products_count, ")")
   ) %>%
   select(country, city, circle, vendors, org, sentinels)
@@ -1354,12 +1355,12 @@ ggplot(fig2_long, aes(x = country, y = Price, fill = Type)) +
     y = "Price (per kg, USD)"
   ) +
   scale_fill_manual(
-    values = c("Organic" = "skyblue", "Conventional" = "lightgreen") # Set custom colors
+    values = c("Organic" = "#44AA99", "Conventional" = "#88CCEE") # Set custom colors
   )
 
 # Save the plot
 ggsave(
-  filename = "boxplot_with_points.png", 
+  filename = "fig2_boxplot_with_points.png", 
   path = "C:/Users/s1985751/Documents/GitHub/fea/Outputs",
   width = 8,
   height = 6,
@@ -1569,14 +1570,14 @@ tab3_combined_summary <- bind_rows(results_list)
 # Mutate to combine and clean up columns
 tab3_combined_summary <- tab3_combined_summary %>%
     mutate(
-      term_organic = paste0(cat_term_organic_count, " (", round(cat_term_organic_perc * 100,1), "%)"),
-      term_natural = paste0(cat_term_natural_count, " (", round(cat_term_natural_perc * 100,1), "%)"),
-      term_chemfree = paste0(cat_term_chemfree_count, " (", round(cat_term_chemfree_perc * 100,1), "%)"),
-      term_pestfree = paste0(cat_term_pestfree_count, " (", round(cat_term_pestfree_perc * 100,1), "%)"),
-      term_bioprod = paste0(cat_term_bioprod_count, " (", round(cat_term_bioprod_perc * 100,1), "%)"),
-      term_bio = paste0(cat_term_bio_count, " (", round(cat_term_bio_perc * 100,1), "%)"),
-      term_eco = paste0(cat_term_eco_count, " (", round(cat_term_eco_perc * 100,1), "%)"),
-      term_gmo = paste0(cat_term_gmo_count, " (", round(cat_term_gmo_perc * 100,1), "%)")
+      term_organic = paste0(cat_term_organic_count, " (", round(cat_term_organic_perc * 100), "%)"),
+      term_natural = paste0(cat_term_natural_count, " (", round(cat_term_natural_perc * 100), "%)"),
+      term_chemfree = paste0(cat_term_chemfree_count, " (", round(cat_term_chemfree_perc * 100), "%)"),
+      term_pestfree = paste0(cat_term_pestfree_count, " (", round(cat_term_pestfree_perc * 100), "%)"),
+      term_bioprod = paste0(cat_term_bioprod_count, " (", round(cat_term_bioprod_perc * 100), "%)"),
+      term_bio = paste0(cat_term_bio_count, " (", round(cat_term_bio_perc * 100), "%)"),
+      term_eco = paste0(cat_term_eco_count, " (", round(cat_term_eco_perc * 100), "%)"),
+      term_gmo = paste0(cat_term_gmo_count, " (", round(cat_term_gmo_perc * 100), "%)")
     ) %>%
   select(country, category, cat_org_count, term_organic, term_natural,
          term_chemfree, term_pestfree, term_bioprod, term_bio, term_eco, term_gmo)
@@ -1683,13 +1684,13 @@ country <- data_clean %>%
   group_by(country) %>%
   summarise(Certified = sum(cert_count, na.rm = TRUE),
             Total = sum(org_products_count, na.rm = TRUE)) %>%
-  mutate(Proportion = round(Certified/Total*100, 2)) %>%
+  mutate(Proportion = round(Certified/Total*100)) %>%
   bind_rows(
     summarise(., 
               country = "Total", 
               Certified = sum(Certified), 
               Total = sum(Total), 
-              Proportion = round(sum(Certified) / sum(Total) * 100, 2))
+              Proportion = round(sum(Certified) / sum(Total) * 100))
     )
 
 # values per store type
@@ -1697,7 +1698,7 @@ vendortype <- data_clean %>%
   group_by(vendor_type)%>%
   summarise(Certified = sum(cert_count, na.rm = TRUE),
             Total = sum(org_products_count, na.rm = TRUE)) %>%
-  mutate(Proportion = round(Certified/Total*100, 2))
+  mutate(Proportion = round(Certified/Total*100))
 
 
 # values per food
@@ -1726,7 +1727,7 @@ sentinelfood <- cbind(
     summarise(Total = sum(total == "Yes", na.rm=T)) %>%
     select(-food)
 ) %>%
-  mutate(Proportion = round(Certified/Total*100, 2))
+  mutate(Proportion = round(Certified/Total*100))
 
 kable(country)
 kable(vendortype)
@@ -1984,7 +1985,7 @@ create_term_summary <- function(data) {
       Term = term,
       Certified = certified_with_term,
       Total = total_with_term,
-      Proportion = round(proportion_certified * 100, 2)
+      Proportion = round(proportion_certified * 100)
     )
   })
   
@@ -2117,13 +2118,13 @@ tabE1_overall <- data_clean %>%
     foods_count_summary = paste0(median_foods_count, " (", iqr_foods_count, "), ",
                                  min_foods_count, " - ", max_foods_count),
     days_open_1_3_summary = paste0(`open_1-3`, " (", 
-                                   ifelse(`percent_open_1-3` < 1, round(`percent_open_1-3`, 1), round(`percent_open_1-3`,1)), 
+                                   ifelse(`percent_open_1-3` < 1, round(`percent_open_1-3`), round(`percent_open_1-3`)), 
                                    "%)"),
     days_open_4_5_summary = paste0(`open_4-5`, " (", 
-                                   ifelse(`percent_open_4-5` < 1, round(`percent_open_4-5`, 1), round(`percent_open_4-5`,1)), 
+                                   ifelse(`percent_open_4-5` < 1, round(`percent_open_4-5`), round(`percent_open_4-5`)), 
                                    "%)"),
     days_open_6_7_summary = paste0(`open_6-7`, " (", 
-                                   ifelse(`percent_open_6-7` < 1, round(`percent_open_6-7`, 1), round(`percent_open_6-7`,1)), 
+                                   ifelse(`percent_open_6-7` < 1, round(`percent_open_6-7`), round(`percent_open_6-7`)), 
                                    "%)"),
   ) %>%
   select(org_vendor, vendor_cashiers_summary, days_open_1_3_summary, 
@@ -2185,7 +2186,7 @@ for (country in countries) {
       summarise(total_org = sum(total == "Yes", na.rm=T))
 
   ) %>%
-    mutate(perc_org = round(total_org/total_count*100, 1))
+    mutate(perc_org = round(total_org/total_count*100))
 
 # Store the result in the list
   results[[country]] <- tabE2
@@ -2228,10 +2229,10 @@ totals_row <- tabE2_final_wide %>%
   )) %>%
   mutate(
     food_count = "Total",
-    Overall_perc_org = round(Overall_total_org / Overall_total_count * 100, 1),
-    Brazil_perc_org = round(Brazil_total_org / Brazil_total_count * 100, 1),
-    India_perc_org = round(India_total_org / India_total_count * 100, 1),
-    UK_perc_org = round(UK_total_org / UK_total_count * 100, 1)
+    Overall_perc_org = round(Overall_total_org / Overall_total_count * 100),
+    Brazil_perc_org = round(Brazil_total_org / Brazil_total_count * 100),
+    India_perc_org = round(India_total_org / India_total_count * 100),
+    UK_perc_org = round(UK_total_org / UK_total_count * 100)
   )
 
 # Bind the totals row to the bottom of the table
@@ -2653,7 +2654,7 @@ tabE5 <- tabE5_data %>%
   summarise(
     discount = sum(discount_count, na.rm = TRUE),
     org_count = sum(org_products_count, na.rm = TRUE),
-    discount_perc = round((discount/org_count)*100, 2)
+    discount_perc = round((discount/org_count)*100)
   )
 
 # Calculate 'Overall' row by summing all countries together
@@ -2662,7 +2663,7 @@ overall_row <- tabE5_data %>%
     country = "Overall",  # Add "Overall" label
     discount = sum(discount_count, na.rm = TRUE),
     org_count = sum(org_products_count, na.rm = TRUE),
-    discount_perc = round((discount/org_count)*100, 2)
+    discount_perc = round((discount/org_count)*100)
   ) 
 
 # Bind the 'Overall' row to the original table
@@ -2705,9 +2706,9 @@ product_position_fn <- function(data, product) {
     ) %>%
     mutate(
       product = product,
-      clustered_perc = round((clustered_count / org_count) * 100, 1),
-      dispersed_perc = round((dispersed_count / org_count) * 100, 1),
-      mostlyorg_perc = round((mostlyorg_count / org_count) * 100, 1)
+      clustered_perc = round((clustered_count / org_count) * 100),
+      dispersed_perc = round((dispersed_count / org_count) * 100),
+      mostlyorg_perc = round((mostlyorg_count / org_count) * 100)
     )
 }
 
@@ -2744,9 +2745,9 @@ tabE6_totals <- tabE6_product_position %>%
   ) %>%
   mutate(
     product = "Total",
-    clustered_perc = round((clustered_count / org_count) * 100, 1),
-    dispersed_perc = round((dispersed_count / org_count) * 100, 1),
-    mostlyorg_perc = round((mostlyorg_count / org_count) * 100, 1)
+    clustered_perc = round((clustered_count / org_count) * 100),
+    dispersed_perc = round((dispersed_count / org_count) * 100),
+    mostlyorg_perc = round((mostlyorg_count / org_count) * 100)
   )
 
 # Add totals row
@@ -2806,11 +2807,11 @@ tabE7_data <- data_clean
     summarise(
       org_count = sum(org_products_count, na.rm = TRUE),
       front_count = sum(store_pos_front_count, na.rm = TRUE),
-      front_perc = round((front_count/org_count)*100, 1),
+      front_perc = round((front_count/org_count)*100),
       mid_count = sum(store_pos_mid_count, na.rm = TRUE),
-      mid_perc = round((mid_count/org_count)*100, 1),
+      mid_perc = round((mid_count/org_count)*100),
       back_count = sum(store_pos_back_count, na.rm = TRUE),
-      back_perc = round((back_count/org_count)*100, 1)
+      back_perc = round((back_count/org_count)*100)
     )
   
   # Calculate 'Overall' row by summing all countries together
@@ -2819,11 +2820,11 @@ tabE7_data <- data_clean
       country = "Overall",  # Add "Overall" label
       org_count = sum(org_products_count, na.rm = TRUE),
       front_count = sum(store_pos_front_count, na.rm = TRUE),
-      front_perc = round((front_count / org_count) * 100, 1),
+      front_perc = round((front_count / org_count) * 100),
       mid_count = sum(store_pos_mid_count, na.rm = TRUE),
-      mid_perc = round((mid_count / org_count) * 100, 1),
+      mid_perc = round((mid_count / org_count) * 100),
       back_count = sum(store_pos_back_count, na.rm = TRUE),
-      back_perc = round((back_count / org_count) * 100, 1)
+      back_perc = round((back_count / org_count) * 100)
     ) 
   
   # Bind the 'Overall' row to the original table
@@ -2860,11 +2861,11 @@ tabE7_data <- data_clean
     summarise(
       org_count = sum(org_products_count, na.rm = TRUE),
       upper_count = sum(shelf_pos_upper_count, na.rm = TRUE),
-      upper_perc = round((upper_count/org_count)*100, 1),
+      upper_perc = round((upper_count/org_count)*100),
       mid_count = sum(shelf_pos_mid_count, na.rm = TRUE),
-      mid_perc = round((mid_count/org_count)*100, 1),
+      mid_perc = round((mid_count/org_count)*100),
       lower_count = sum(shelf_pos_lower_count, na.rm = TRUE),
-      lower_perc = round((lower_count/org_count)*100, 1)
+      lower_perc = round((lower_count/org_count)*100)
     )
   
   # Calculate 'Overall' row by summing all countries together
@@ -2873,11 +2874,11 @@ tabE7_data <- data_clean
       country = "Overall",  # Add "Overall" label
       org_count = sum(org_products_count, na.rm = TRUE),
       upper_count = sum(shelf_pos_upper_count, na.rm = TRUE),
-      upper_perc = round((upper_count / org_count) * 100, 1),
+      upper_perc = round((upper_count / org_count) * 100),
       mid_count = sum(shelf_pos_mid_count, na.rm = TRUE),
-      mid_perc = round((mid_count / org_count) * 100, 1),
+      mid_perc = round((mid_count / org_count) * 100),
       lower_count = sum(shelf_pos_lower_count, na.rm = TRUE),
-      lower_perc = round((lower_count / org_count) * 100, 1)
+      lower_perc = round((lower_count / org_count) * 100)
     ) 
   
   # Bind the 'Overall' row to the original table
@@ -2951,7 +2952,7 @@ tabE8 <- left_join(
 ) %>%
   # adjust variables
   mutate(food = paste(food, rank),
-         perc = round((n/n_brands)*100, 1),
+         perc = round((n/n_brands)*100),
          brand = paste0(brand, " (", n, ", ", perc, "%)")) %>%
   select(country, food, brand) %>%
    # sort by 'food' column alphabetically
@@ -2998,7 +2999,7 @@ tabE9_main <- tabE9_data %>%
     org_count = sum(org_products_count, na.rm = TRUE),
     .groups = 'drop'
   ) %>%
-  mutate(perc = round((theme_count / org_count)*100,1)) %>%
+  mutate(perc = round((theme_count / org_count)*100)) %>%
   select(country, theme, theme_count, perc)
 
 # Create the overall summary table
@@ -3017,7 +3018,7 @@ tabE9_overall <- tabE9_data %>%
     .groups = 'drop'
   ) %>%
   mutate(
-    perc = round((theme_count / org_count)*100,1),
+    perc = round((theme_count / org_count)*100),
     country = paste0("Overall")
     ) %>%
   select(country, theme, theme_count, perc)
@@ -3034,11 +3035,75 @@ tabE9 <- bind_rows(tabE9_main, tabE9_overall) %>%
   select(theme, theme_count_Overall, perc_Overall, theme_count_Brazil, perc_Brazil, 
          theme_count_India, perc_India, theme_count_UK, perc_UK)
 
-
 # Export to table_outputs workbook
 addWorksheet(table_outputs, "Table E9")
 writeData(table_outputs, sheet = "Table E9", x = tabE9)
 saveWorkbook(table_outputs, "C:/Users/s1985751/Documents/GitHub/fea/table_outputs.xlsx", overwrite = TRUE)
+
+
+
+
+
+# Create a combined table in long format for the bar chart
+tabE9_fig_data <- bind_rows(tabE9_main, tabE9_overall)
+
+# Ensure the correct order of countries
+tabE9_fig_data$country <- factor(tabE9_fig_data$country, 
+                                      levels = c("Brazil", "India", "UK", "Overall"))
+
+# Ensure the correct order of themes
+tabE9_fig_data$theme <- factor(tabE9_fig_data$theme, 
+                                   levels = c("theme_health_count", "theme_env_count", "theme_qual_count", 
+                                              "theme_taste_count", "theme_sj_count","theme_trad_count","theme_life_count"))
+
+# Rename columns
+tabE9_fig_data <- tabE9_fig_data %>%
+  mutate(theme = recode(theme,
+    "theme_health_count" = "Health",
+    "theme_env_count" = "Environment",
+    "theme_qual_count" = "Quality",
+    "theme_taste_count" = "Taste",    
+    "theme_sj_count" = "Social Justice",
+    "theme_trad_count" = "Tradition",
+    "theme_life_count" = "Lifestyle",
+  ))
+
+
+
+# Establish values for colourblind palette
+cbPalette <- c("#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#CC6677", "#882255", "#AA4499")
+
+# Create barplot
+tabE9_fig <- ggplot(data = tabE9_fig_data, aes(x = country, y = perc, fill = theme)) +
+    geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +  # Grouped bars
+    labs(
+      x = "Themes",
+      y = "Proportion of products using theme",
+      fill = element_blank()
+    ) +
+    scale_y_continuous(labels = percent_format(scale = 1)) +
+    #ylim(0, 1) +
+    scale_fill_manual(values=cbPalette) +
+    theme_light(base_size = 14) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),   # Rotated x-axis labels
+      legend.position = "bottom",
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size =14)
+    )
+
+# Display plot
+tabE9_fig
+
+# Save the full plot with legend
+ggsave("tabE9_figure.png", 
+       tabE9_fig, 
+       path = "C:/Users/s1985751/Documents/GitHub/fea/Outputs",
+       width = 12, height = 8, dpi = 300)
+
+
+
+
 ```
 
 
@@ -3061,7 +3126,7 @@ tabE10a <- tabE10_data %>%
     org_count = sum(org_products_count, na.rm = TRUE)
   ) %>%
   mutate(
-    perc = round((promo_count/org_count)*100,1)
+    perc = round((promo_count/org_count)*100)
   ) %>%
   bind_rows(
     summarise(
@@ -3069,7 +3134,7 @@ tabE10a <- tabE10_data %>%
       country = "Overall",
       promo_count = sum(promo_count, na.rm = TRUE),
       org_count = sum(org_count, na.rm = TRUE),
-      perc = round((sum(promo_count, na.rm = TRUE) / sum(org_count, na.rm = TRUE)) * 100, 1)
+      perc = round((sum(promo_count, na.rm = TRUE) / sum(org_count, na.rm = TRUE)) * 100)
     )
   ) %>%
   select(country, promo_count, perc) %>%
@@ -3106,7 +3171,7 @@ tabE10b_main <- tabE10_data %>%
     promo_count = sum(promo_count, na.rm = TRUE),
     .groups = 'drop'
   ) %>%
-  mutate(perc = round((type_count / promo_count)*100,1)) %>%
+  mutate(perc = round((type_count / promo_count)*100)) %>%
   select(country, type, type_count, perc)
 
 
@@ -3126,7 +3191,7 @@ tabE10b_overall <- tabE10_data %>%
     .groups = 'drop'
   ) %>%
   mutate(
-    perc = round((type_count / promo_count)*100,1),
+    perc = round((type_count / promo_count)*100),
     country = paste0("Overall")
     ) %>%
   select(country, type, type_count, perc)
@@ -3169,7 +3234,7 @@ tabE10c_main <- tabE10_data %>%
     promo_count = sum(promo_count, na.rm = TRUE),
     .groups = 'drop'
   ) %>%
-  mutate(perc = round((theme_count / promo_count)*100,1)) %>%
+  mutate(perc = round((theme_count / promo_count)*100)) %>%
   select(country, theme, theme_count, perc)
 
 
@@ -3189,7 +3254,7 @@ tabE10c_overall <- tabE10_data %>%
     .groups = 'drop'
   ) %>%
   mutate(
-    perc = round((theme_count / promo_count)*100,1),
+    perc = round((theme_count / promo_count)*100),
     country = paste0("Overall")
     ) %>%
   select(country, theme, theme_count, perc)
@@ -3295,7 +3360,7 @@ tabS1_final <- combined_tabS1 %>%
 # Merge columns
 tabS1_final <- tabS1_final %>%
   mutate(
-    org_foodonly = paste0(count_org_vendors_foodonly, " (", round(org_vendor_perc_foodonly * 100, 1), "%)"),
+    org_foodonly = paste0(count_org_vendors_foodonly, " (", round(org_vendor_perc_foodonly * 100), "%)"),
     sentinels_foodonly = paste0(median_org_products_count_foodonly, " (", iqr_org_products_count_foodonly, ")")
   ) %>%
   select(country, city, circle, vendors, org_foodonly, sentinels_foodonly)
@@ -3325,7 +3390,7 @@ tabS2_neighbourhood_data <- data_clean %>%
   summarize(
     organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
     n_multiple_org_binary = sum(multiple_org_binary == 1, na.rm = TRUE),
-    perc_multiple_org_binary = n_multiple_org_binary / organic_vendors,
+    perc_multiple_org_binary = round((n_multiple_org_binary / organic_vendors)*100),
     median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
     iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
   ) %>%
@@ -3343,17 +3408,17 @@ tabS2_neighbourhood <- tabS2_neighbourhood_data %>%
     median_multiple_org_count = "Foods with multiple options, median (IQR)",
     iqr_multiple_org_count = " "
   ) %>%
-  fmt_percent(
-    columns = vars(perc_multiple_org_binary),
-    decimals = 1
-  ) %>%
+  #fmt_percent(
+    #columns = vars(perc_multiple_org_binary),
+    #decimals = 1
+  #) %>%
   cols_merge(
     columns = c("n_multiple_org_binary", "perc_multiple_org_binary"),
-    pattern = "{1} ({2})"
+    pattern = "{1} ({2}%)"
   ) %>%
   cols_merge(
     columns = c("median_multiple_org_count", "iqr_multiple_org_count"),
-    pattern = "{1} ({2})"
+    pattern = "{1} ({2}%)"
   ) %>%
   sub_missing() 
   
@@ -3375,7 +3440,7 @@ tabS2_city_data <- data_clean %>%
   summarize(
     organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
     n_multiple_org_binary = sum(multiple_org_binary == 1, na.rm = TRUE),
-    perc_multiple_org_binary = n_multiple_org_binary / organic_vendors,
+    perc_multiple_org_binary = round((n_multiple_org_binary / organic_vendors)*100),
     median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
     iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
   ) %>%
@@ -3392,10 +3457,10 @@ tabS2_city <- tabS2_city_data %>%
     median_multiple_org_count = "Foods with multiple options, median (IQR)",
     iqr_multiple_org_count = " "
   ) %>%
-  fmt_percent(
-    columns = vars(perc_multiple_org_binary),
-    decimals = 1
-  ) %>%
+  #fmt_percent(
+    #columns = vars(perc_multiple_org_binary),
+    #decimals = 1
+  #) %>%
   cols_merge(
     columns = c("n_multiple_org_binary", "perc_multiple_org_binary"),
     pattern = "{1} ({2})"
@@ -3423,7 +3488,7 @@ tabS2_country_data <- data_clean %>%
   summarize(
     organic_vendors = sum(org_vendor == 1, na.rm = TRUE),
     n_multiple_org_binary = sum(multiple_org_binary == 1, na.rm = TRUE),
-    perc_multiple_org_binary = round((n_multiple_org_binary / organic_vendors)*100,1),
+    perc_multiple_org_binary = round((n_multiple_org_binary / organic_vendors)*100),
     median_multiple_org_count = median(multiple_org_count, na.rm = TRUE),
     iqr_multiple_org_count = IQR(multiple_org_count, na.rm = TRUE)
   ) %>%
