@@ -1810,7 +1810,7 @@ saveWorkbook(table_outputs, "Outputs/table_outputs.xlsx", overwrite = TRUE)
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
-# Calculate number of organic and conventional vendors, median, IQR, min and max price
+# Calculate number of organic and conventional vendors, median, IQR, min and max price - USD
 tab_S6_city_data <- rice_prices_data %>%
   group_by(country, city) %>%
   summarise(
@@ -1826,6 +1826,7 @@ tab_S6_city_data <- rice_prices_data %>%
     max_conv_rice = max(rice_price_conv_kg_usd, na.rm = TRUE),
   ) %>%
   ungroup()
+
 
 # Create the gt table
 tab_S6_city <- tab_S6_city_data %>%
@@ -1870,7 +1871,77 @@ tab_S6_city <- tab_S6_city_data %>%
 tab_S6_city
 
 
-# CREATE A BOXPLOT
+
+# REPLICATE FOR LOCAL CURRENCY
+
+# Calculate number of organic and conventional vendors, median, IQR, min and max price - local
+tab_S6_city_data_local <- rice_prices_data %>%
+  group_by(country, city) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg)),
+    median_org_rice_local = median(rice_price_org_kg, na.rm = TRUE),
+    iqr_org_rice_local = IQR(rice_price_org_kg, na.rm = TRUE),
+    min_org_rice_local = min(rice_price_org_kg, na.rm = TRUE),
+    max_org_rice_local = max(rice_price_org_kg, na.rm = TRUE),
+    median_conv_rice_local = median(rice_price_conv_kg, na.rm = TRUE),
+    iqr_conv_rice_local = IQR(rice_price_conv_kg, na.rm = TRUE),
+    min_conv_rice_local = min(rice_price_conv_kg, na.rm = TRUE),
+    max_conv_rice_local = max(rice_price_conv_kg, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+# Create the gt table
+tab_S6_city_local <- tab_S6_city_data_local %>%
+  gt(rowname_col = "city", groupname_col = c("country")) %>%
+  cols_label(
+    country = "Country",
+    city = "City",
+    count_org_rice_vendors = "Organic sample size (n)",
+    count_conv_rice_vendors = "Conventional sample size (n)",
+    median_org_rice_local = "Organic median (IQR), min-max (local currency)",
+    iqr_org_rice_local = " ",
+    min_org_rice_local = " ",
+    max_org_rice_local = " ",
+    median_conv_rice_local = "Conventional median (IQR), min-max (local currency)",
+    iqr_conv_rice_local = " ",
+    min_conv_rice_local = " ",
+    max_conv_rice_local = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_org_rice_local", "iqr_org_rice_local", "min_org_rice_local", "max_org_rice_local"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_conv_rice_local", "iqr_conv_rice_local", "min_conv_rice_local", "max_conv_rice_local"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+  fmt_number(
+    columns = vars(median_org_rice_local, iqr_org_rice_local, 
+                   min_org_rice_local, max_org_rice_local,
+                   median_conv_rice_local, iqr_conv_rice_local, 
+                   min_conv_rice_local, max_conv_rice_local),
+    decimals = 2
+  ) %>%
+  summary_rows(
+    groups = everything(),
+    columns = vars(count_org_rice_vendors,count_conv_rice_vendors),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0,
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tab_S6_city_local
+
+
+
+
+
+
+
+# CREATE A BOXPLOT - USD
 
 # Create table in correct data format
 tab_S6_boxplot <- tab_S6_city_data %>%
@@ -1939,9 +2010,13 @@ ggplot(tab_S6_boxplot, aes(x = city, fill = Type)) +
 
 
 
-# Export to table_outputs workbook
-addWorksheet(table_outputs, "Table S6 - city")
-writeData(table_outputs, sheet = "Table S6 - city", x = tab_S6_city)
+# Export to table_outputs workbook - USD
+addWorksheet(table_outputs, "Table S6 - city - USD")
+writeData(table_outputs, sheet = "Table S6 - city - USD", x = tab_S6_city)
+
+# Export to table_outputs workbook - USD
+addWorksheet(table_outputs, "Table S6 - city - local")
+writeData(table_outputs, sheet = "Table S6 - city - local", x = tab_S6_city_local)
 saveWorkbook(table_outputs, "Outputs/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -1950,6 +2025,8 @@ saveWorkbook(table_outputs, "Outputs/table_outputs.xlsx", overwrite = TRUE)
 
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+# CALCULATE FOR USD
 
 # Calculate number of organic and conventional vendors, median, IQR, min and max price
 tab_S6_country_data <- rice_prices_data %>%
@@ -2008,9 +2085,77 @@ tab_S6_country <- tab_S6_country_data %>%
 tab_S6_country
 
 
+# REPLICATE FOR LOCAL CURRENCY
+
+# Calculate number of organic and conventional vendors, median, IQR, min and max price
+tab_S6_country_data_local <- rice_prices_data %>%
+  group_by(country) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg)),
+    median_org_rice_local = median(rice_price_org_kg, na.rm = TRUE),
+    iqr_org_rice_local = IQR(rice_price_org_kg, na.rm = TRUE),
+    min_org_rice_local = min(rice_price_org_kg, na.rm = TRUE),
+    max_org_rice_local = max(rice_price_org_kg, na.rm = TRUE),
+    median_conv_rice_local = median(rice_price_conv_kg, na.rm = TRUE),
+    iqr_conv_rice_local = IQR(rice_price_conv_kg, na.rm = TRUE),
+    min_conv_rice_local = min(rice_price_conv_kg, na.rm = TRUE),
+    max_conv_rice_local = max(rice_price_conv_kg, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+tab_S6_country_local <- tab_S6_country_data_local %>%
+  gt() %>%
+  cols_label(
+    country = "Country",
+    count_org_rice_vendors = "Organic sample size (n)",
+    count_conv_rice_vendors = "Conventional sample size (n)",
+    median_org_rice_local = "Organic median (IQR), min-max (local currency)",
+    iqr_org_rice_local = " ",
+    min_org_rice_local = " ",
+    max_org_rice_local = " ",
+    median_conv_rice_local = "Conventional median (IQR), min-max (local currency)",
+    iqr_conv_rice_local = " ",
+    min_conv_rice_local = " ",
+    max_conv_rice_local = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_org_rice_local", "iqr_org_rice_local", "min_org_rice_local", "max_org_rice_local"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_conv_rice_local", "iqr_conv_rice_local", "min_conv_rice_local", "max_conv_rice_local"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+  fmt_number(
+    columns = vars(median_org_rice_local, iqr_org_rice_local, 
+                   min_org_rice_local, max_org_rice_local,
+                   median_conv_rice_local, iqr_conv_rice_local, 
+                   min_conv_rice_local, max_conv_rice_local),
+    decimals = 2
+  ) %>%
+  grand_summary_rows(
+    columns = vars(count_org_rice_vendors,count_conv_rice_vendors),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0,
+  ) %>%
+  sub_missing() 
+
+# Display the table
+tab_S6_country_local
+
+
+
+
+
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table S6 - country")
-writeData(table_outputs, sheet = "Table S6 - country", x = tab_S6_country)
+addWorksheet(table_outputs, "Table S6 - country - USD")
+writeData(table_outputs, sheet = "Table S6 - country - USD", x = tab_S6_country)
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table S6 - country - local")
+writeData(table_outputs, sheet = "Table S6 - country - local", x = tab_S6_country_local)
 saveWorkbook(table_outputs, "Outputs/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -2210,7 +2355,8 @@ cat("Overall Mann-Whitney U test p-value (one-tailed):", uk_p_value_one_tailed, 
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
-# Calculate number of organic and conventional vendors, median, IQR, min and max price
+# Calculate number of organic and conventional vendors, median, IQR, min and max price - USD
+
 # Filtered on vendors with both organic and conventional rice
 tab_S7_city_data <- rice_prices_data %>%
   filter(rice_price_both == 1) %>%
@@ -2271,9 +2417,82 @@ tab_S7_city <- tab_S7_city_data %>%
 # Display the table
 tab_S7_city
 
+
+# Repeat for local currency
+
+# Filtered on vendors with both organic and conventional rice
+tab_S7_city_data_local <- rice_prices_data %>%
+  filter(rice_price_both == 1) %>%
+  group_by(country, city) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg)),
+    median_org_rice_local = median(rice_price_org_kg, na.rm = TRUE),
+    iqr_org_rice_local = IQR(rice_price_org_kg, na.rm = TRUE),
+    min_org_rice_local = min(rice_price_org_kg, na.rm = TRUE),
+    max_org_rice_local = max(rice_price_org_kg, na.rm = TRUE),
+    median_conv_rice_local = median(rice_price_conv_kg, na.rm = TRUE),
+    iqr_conv_rice_local = IQR(rice_price_conv_kg, na.rm = TRUE),
+    min_conv_rice_local = min(rice_price_conv_kg, na.rm = TRUE),
+    max_conv_rice_local = max(rice_price_conv_kg, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+# Create the gt table
+tab_S7_city_local <- tab_S7_city_data_local %>%
+  gt(rowname_col = "city", groupname_col = c("country")) %>%
+  cols_label(
+    country = "Country",
+    city = "City",
+    count_org_rice_vendors = "Organic sample size (n)",
+    count_conv_rice_vendors = "Conventional sample size (n)",
+    median_org_rice_local = "Organic median (IQR), min-max (local)",
+    iqr_org_rice_local = " ",
+    min_org_rice_local = " ",
+    max_org_rice_local = " ",
+    median_conv_rice_local = "Conventional median (IQR), min-max (local)",
+    iqr_conv_rice_local = " ",
+    min_conv_rice_local = " ",
+    max_conv_rice_local = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_org_rice_local", "iqr_org_rice_local", "min_org_rice_local", "max_org_rice_local"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_conv_rice_local", "iqr_conv_rice_local", "min_conv_rice_local", "max_conv_rice_local"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+  fmt_number(
+    columns = vars(median_org_rice_local, iqr_org_rice_local, 
+                   min_org_rice_local, max_org_rice_local,
+                   median_conv_rice_local, iqr_conv_rice_local, 
+                   min_conv_rice_local, max_conv_rice_local),
+    decimals = 2
+  ) %>%
+  summary_rows(
+    groups = everything(),
+    columns = vars(count_org_rice_vendors,count_conv_rice_vendors),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0,
+  ) %>%
+  sub_missing() 
+  
+# Display the table
+tab_S7_city_local
+
+
+
+
+
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table S7 - city")
-writeData(table_outputs, sheet = "Table S7 - city", x = tab_S7_city)
+addWorksheet(table_outputs, "Table S7 - city - USD")
+writeData(table_outputs, sheet = "Table S7 - city - USD", x = tab_S7_city)
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table S7 - city - local")
+writeData(table_outputs, sheet = "Table S7 - city - local", x = tab_S7_city_local)
 saveWorkbook(table_outputs, "Outputs/table_outputs.xlsx", overwrite = TRUE)
 
 ```
@@ -2282,7 +2501,8 @@ saveWorkbook(table_outputs, "Outputs/table_outputs.xlsx", overwrite = TRUE)
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
-# Calculate number of organic and conventional vendors, median, IQR, min and max price
+# Calculate number of organic and conventional vendors, median, IQR, min and max price - USD
+
 # Filtered on vendors with both organic and conventional rice
 tab_S7_country_data <- rice_prices_data %>%
   filter(rice_price_both == 1) %>%
@@ -2340,11 +2560,80 @@ tab_S7_country <- tab_S7_country_data %>%
 # Display the table
 tab_S7_country
 
-# Export to table_outputs workbook
-addWorksheet(table_outputs, "Table S7 - country")
-writeData(table_outputs, sheet = "Table S7 - country", x = tab_S7_country)
-saveWorkbook(table_outputs, "Outputs/table_outputs.xlsx", overwrite = TRUE)
 
+# REPEAT FOR LOCAL CURRENCY
+
+# Calculate number of organic and conventional vendors, median, IQR, min and max price - local currency
+
+# Filtered on vendors with both organic and conventional rice
+tab_S7_country_data_local <- rice_prices_data %>%
+  filter(rice_price_both == 1) %>%
+  group_by(country) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg)),
+    median_org_rice_local = median(rice_price_org_kg, na.rm = TRUE),
+    iqr_org_rice_local = IQR(rice_price_org_kg, na.rm = TRUE),
+    min_org_rice_local = min(rice_price_org_kg, na.rm = TRUE),
+    max_org_rice_local = max(rice_price_org_kg, na.rm = TRUE),
+    median_conv_rice_local = median(rice_price_conv_kg, na.rm = TRUE),
+    iqr_conv_rice_local = IQR(rice_price_conv_kg, na.rm = TRUE),
+    min_conv_rice_local = min(rice_price_conv_kg, na.rm = TRUE),
+    max_conv_rice_local = max(rice_price_conv_kg, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+tab_S7_country_local <- tab_S7_country_data_local %>%
+  gt() %>%
+  cols_label(
+    country = "Country",
+    count_org_rice_vendors = "Organic sample size (n)",
+    count_conv_rice_vendors = "Conventional sample size (n)",
+    median_org_rice_local = "Organic median (IQR), min-max (local currency)",
+    iqr_org_rice_local = " ",
+    min_org_rice_local = " ",
+    max_org_rice_local = " ",
+    median_conv_rice_local = "Conventional median (IQR), min-max (local currency)",
+    iqr_conv_rice_local = " ",
+    min_conv_rice_local = " ",
+    max_conv_rice_local = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_org_rice_local", "iqr_org_rice_local", 
+                "min_org_rice_local", "max_org_rice_local"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_conv_rice_local", "iqr_conv_rice_local", 
+                "min_conv_rice_local", "max_conv_rice_local"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+  fmt_number(
+    columns = vars(median_org_rice_local, iqr_org_rice_local, 
+                   min_org_rice_local, max_org_rice_local,
+                   median_conv_rice_local, iqr_conv_rice_local, 
+                   min_conv_rice_local, max_conv_rice_local),
+    decimals = 2
+  ) %>%
+  grand_summary_rows(
+    columns = vars(count_org_rice_vendors,count_conv_rice_vendors),
+    fns = list(total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_number,
+    decimals = 0,
+  ) %>%
+  sub_missing() 
+
+# Display the table
+tab_S7_country_local
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table S7 - country - USD")
+writeData(table_outputs, sheet = "Table S7 - country - USD", x = tab_S7_country)
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table S7 - country - local")
+writeData(table_outputs, sheet = "Table S7 - country - local", x = tab_S7_country_local)
+saveWorkbook(table_outputs, "Outputs/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 
@@ -2353,7 +2642,8 @@ saveWorkbook(table_outputs, "Outputs/table_outputs.xlsx", overwrite = TRUE)
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
-# Calculate number of organic and conventional vendors, median, IQR, min and max price
+# Calculate number of organic and conventional vendors, median, IQR, min and max price - USD
+
 # Filtered on vendors with both organic and conventional rice
 tab_S7_overall_data <- rice_prices_data %>%
   filter(rice_price_both == 1) %>%
@@ -2403,11 +2693,75 @@ tab_S7_overall <- tab_S7_overall_data %>%
 # Display the table
 tab_S7_overall
 
-# Export to table_outputs workbook
-addWorksheet(table_outputs, "Table S7 - overall")
-writeData(table_outputs, sheet = "Table S7 - overall", x = tab_S7_overall)
-saveWorkbook(table_outputs, "Outputs/table_outputs.xlsx", overwrite = TRUE)
 
+# REPEAT FOR LOCAL CURRENCY
+
+# Calculate number of organic and conventional vendors, median, IQR, min and max price - local currency
+
+# Filtered on vendors with both organic and conventional rice
+tab_S7_overall_data_local <- rice_prices_data %>%
+  filter(rice_price_both == 1) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg)),
+    median_org_rice_local = median(rice_price_org_kg, na.rm = TRUE),
+    iqr_org_rice_local = IQR(rice_price_org_kg, na.rm = TRUE),
+    min_org_rice_local = min(rice_price_org_kg, na.rm = TRUE),
+    max_org_rice_local = max(rice_price_org_kg, na.rm = TRUE),
+    median_conv_rice_local = median(rice_price_conv_kg, na.rm = TRUE),
+    iqr_conv_rice_local = IQR(rice_price_conv_kg, na.rm = TRUE),
+    min_conv_rice_local = min(rice_price_conv_kg, na.rm = TRUE),
+    max_conv_rice_local = max(rice_price_conv_kg, na.rm = TRUE),
+  ) %>%
+  ungroup()
+
+tab_S7_overall_local <- tab_S7_overall_data_local %>%
+  gt() %>%
+  cols_label(
+    count_org_rice_vendors = "Organic sample size (n)",
+    count_conv_rice_vendors = "Conventional sample size (n)",
+    median_org_rice_local = "Organic median (IQR), min-max (local currency)",
+    iqr_org_rice_local = " ",
+    min_org_rice_local = " ",
+    max_org_rice_local = " ",
+    median_conv_rice_local = "Conventional median (IQR), min-max (local currency)",
+    iqr_conv_rice_local = " ",
+    min_conv_rice_local = " ",
+    max_conv_rice_local = " "
+  ) %>%
+  cols_merge(
+    columns = c("median_org_rice_local", "iqr_org_rice_local", 
+                "min_org_rice_local", "max_org_rice_local"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+    cols_merge(
+    columns = c("median_conv_rice_local", "iqr_conv_rice_local", 
+                "min_conv_rice_local", "max_conv_rice_local"),
+    pattern = "{1} ({2}), {3}-{4}"
+  ) %>%
+  fmt_number(
+    columns = vars(median_org_rice_local, iqr_org_rice_local, 
+                   min_org_rice_local, max_org_rice_local,
+                   median_conv_rice_local, iqr_conv_rice_local, 
+                   min_conv_rice_local, max_conv_rice_local),
+    decimals = 2
+  ) %>%
+  sub_missing() 
+
+# Display the table
+tab_S7_overall_local
+
+
+
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table S7 - overall - USD")
+writeData(table_outputs, sheet = "Table S7 - overall - USD", x = tab_S7_overall)
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table S7 - overall - local")
+writeData(table_outputs, sheet = "Table S7 - overall - local", x = tab_S7_overall_local)
+saveWorkbook(table_outputs, "Outputs/table_outputs.xlsx", overwrite = TRUE)
 
 ```
 
@@ -2505,7 +2859,7 @@ cat("Overall Wilcoxon Signed Rank test p-value (one-tailed):", wsr_uk_p_value_on
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 
-# Calculate per neighbourhood number of organic and conventional vendors, median, IQR, min and max price
+# Calculate per neighbourhood number of organic and conventional vendors, median, IQR, min and max price - USD
 tab_S8_neighbourhood_data <- rice_prices_data %>%
   group_by(country, city, circle) %>%
   summarise(
@@ -2617,9 +2971,144 @@ tab_S8_final <- combined_tab_S8 %>%
   arrange(country, city, level)
 
 
+
+# REPEAT FOR LOCAL CURRENCY
+
+# Calculate per neighbourhood number of organic and conventional vendors, median, IQR, min and max price - local currency
+tab_S8_neighbourhood_data_local <- rice_prices_data %>%
+  group_by(country, city, circle) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg)),
+    median_org_rice_local = median(rice_price_org_kg, na.rm = TRUE),
+    iqr_org_rice_local = IQR(rice_price_org_kg, na.rm = TRUE),
+    min_org_rice_local = min(rice_price_org_kg, na.rm = TRUE),
+    max_org_rice_local = max(rice_price_org_kg, na.rm = TRUE),
+    median_conv_rice_local = median(rice_price_conv_kg, na.rm = TRUE),
+    iqr_conv_rice_local = IQR(rice_price_conv_kg, na.rm = TRUE),
+    min_conv_rice_local = min(rice_price_conv_kg, na.rm = TRUE),
+    max_conv_rice_local = max(rice_price_conv_kg, na.rm = TRUE),
+  ) %>%
+  mutate(
+    org_price_local = paste0(round(median_org_rice_local, 2), " (", round(iqr_org_rice_local, 2), "), ", 
+                       round(min_org_rice_local, 2), "-", round(max_org_rice_local, 2)),
+    conv_price_local = paste0(round(median_conv_rice_local, 2), " (", round(iqr_conv_rice_local, 2), "), ", 
+                       round(min_conv_rice_local, 2), "-", round(max_conv_rice_local, 2))
+  ) %>%
+  select(country, city, circle, count_org_rice_vendors, count_conv_rice_vendors, org_price_local, conv_price_local)
+
+# Calculate per city number of organic and conventional vendors, median, IQR, min and max price
+tab_S8_city_data_local <- rice_prices_data %>%
+  group_by(country, city) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg)),
+    median_org_rice_local = median(rice_price_org_kg, na.rm = TRUE),
+    iqr_org_rice_local = IQR(rice_price_org_kg, na.rm = TRUE),
+    min_org_rice_local = min(rice_price_org_kg, na.rm = TRUE),
+    max_org_rice_local = max(rice_price_org_kg, na.rm = TRUE),
+    median_conv_rice_local = median(rice_price_conv_kg, na.rm = TRUE),
+    iqr_conv_rice_local = IQR(rice_price_conv_kg, na.rm = TRUE),
+    min_conv_rice_local = min(rice_price_conv_kg, na.rm = TRUE),
+    max_conv_rice_local = max(rice_price_conv_kg, na.rm = TRUE),
+  ) %>%
+  mutate(
+    org_price_local = paste0(round(median_org_rice_local, 2), " (", 
+                             round(iqr_org_rice_local, 2), "), ", 
+                       round(min_org_rice_local, 2), "-", 
+                       round(max_org_rice_local, 2)),
+    conv_price_local = paste0(round(median_conv_rice_local, 2), " (", 
+                              round(iqr_conv_rice_local, 2), "), ", 
+                       round(min_conv_rice_local, 2), "-", 
+                       round(max_conv_rice_local, 2))
+  ) %>%
+  select(country, city, count_org_rice_vendors, count_conv_rice_vendors, 
+         org_price_local, conv_price_local)
+
+# Calculate per country number of organic and conventional vendors, median, IQR, min and max price
+tab_S8_country_data_local <- rice_prices_data %>%
+  group_by(country) %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg)),
+    median_org_rice_local = median(rice_price_org_kg, na.rm = TRUE),
+    iqr_org_rice_local = IQR(rice_price_org_kg, na.rm = TRUE),
+    min_org_rice_local = min(rice_price_org_kg, na.rm = TRUE),
+    max_org_rice_local = max(rice_price_org_kg, na.rm = TRUE),
+    median_conv_rice_local = median(rice_price_conv_kg, na.rm = TRUE),
+    iqr_conv_rice_local = IQR(rice_price_conv_kg, na.rm = TRUE),
+    min_conv_rice_local = min(rice_price_conv_kg, na.rm = TRUE),
+    max_conv_rice_local = max(rice_price_conv_kg, na.rm = TRUE),
+  ) %>%
+  mutate(
+    org_price_local = paste0(round(median_org_rice_local, 2), " (", 
+                             round(iqr_org_rice_local, 2), "), ", 
+                       round(min_org_rice_local, 2), "-", 
+                       round(max_org_rice_local, 2)),
+    conv_price_local = paste0(round(median_conv_rice_local, 2), " (", 
+                              round(iqr_conv_rice_local, 2), "), ", 
+                       round(min_conv_rice_local, 2), "-", 
+                       round(max_conv_rice_local, 2))
+  ) %>%
+  select(country, count_org_rice_vendors, count_conv_rice_vendors, 
+         org_price_local, conv_price_local)
+
+# Calculate overall number of organic and conventional vendors, median, IQR, min and max price
+tab_S8_overall_data_local <- rice_prices_data %>%
+  summarise(
+    count_org_rice_vendors = sum(!is.na(rice_price_org_kg)),
+    count_conv_rice_vendors = sum(!is.na(rice_price_conv_kg)),
+    median_org_rice_local = median(rice_price_org_kg, na.rm = TRUE),
+    iqr_org_rice_local = IQR(rice_price_org_kg, na.rm = TRUE),
+    min_org_rice_local = min(rice_price_org_kg, na.rm = TRUE),
+    max_org_rice_local = max(rice_price_org_kg, na.rm = TRUE),
+    median_conv_rice_local = median(rice_price_conv_kg, na.rm = TRUE),
+    iqr_conv_rice_local = IQR(rice_price_conv_kg, na.rm = TRUE),
+    min_conv_rice_local = min(rice_price_conv_kg, na.rm = TRUE),
+    max_conv_rice_local = max(rice_price_conv_kg, na.rm = TRUE),
+  ) %>%
+  mutate(
+    org_price_local = paste0(round(median_org_rice_local, 2), " (", 
+                             round(iqr_org_rice_local, 2), "), ", 
+                       round(min_org_rice_local, 2), "-", 
+                       round(max_org_rice_local, 2)),
+    conv_price_local = paste0(round(median_conv_rice_local, 2), " (", 
+                              round(iqr_conv_rice_local, 2), "), ", 
+                       round(min_conv_rice_local, 2), "-", 
+                       round(max_conv_rice_local, 2))
+  ) %>%
+  select(count_org_rice_vendors, count_conv_rice_vendors, 
+         org_price_local, conv_price_local)
+
+# Combine tables
+combined_tab_S8_local <- bind_rows(
+  tab_S8_neighbourhood_data_local %>%
+    mutate(level = "Neighbourhood"),
+  tab_S8_city_data_local %>%
+    mutate(level = "City"),
+  tab_S8_country_data_local %>%
+    mutate(level = "Country"),
+  tab_S8_overall_data_local %>%
+    mutate(level = "Overall")
+)
+
+# Create a custom order for the 'level' column to ensure Neighbourhood rows come first, then City, and then Country
+combined_tab_S8_local$level <- factor(combined_tab_S8_local$level, 
+                               levels = c("Neighbourhood", "City", "Country", "Overall"))
+
+# Sort the combined data by country, city, and the custom level order
+tab_S8_final_local <- combined_tab_S8_local %>%
+  arrange(country, city, level)
+
+
+
 # Export to table_outputs workbook
-addWorksheet(table_outputs, "Table S8")
-writeData(table_outputs, sheet = "Table S8", x = tab_S8_final)
+addWorksheet(table_outputs, "Table S8 - USD")
+writeData(table_outputs, sheet = "Table S8 - USD", x = tab_S8_final)
+
+# Export to table_outputs workbook
+addWorksheet(table_outputs, "Table S8 - local")
+writeData(table_outputs, sheet = "Table S8 - local", x = tab_S8_final_local)
 saveWorkbook(table_outputs, "Outputs/table_outputs.xlsx", overwrite = TRUE)
 
 ```
